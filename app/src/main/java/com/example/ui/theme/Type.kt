@@ -1,36 +1,24 @@
 package com.example.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
-val Typography =
+/**
+ * Material3 [Typography] built from [DesignTokens.Typography] (Major Third 1.25 scale).
+ *
+ * Every text style traces to a token in tokens/typography.json. No hardcoded
+ * sp values — all come from [DesignTokens.Typography].
+ */
+val AppTypography =
   Typography(
-    bodyLarge =
-      TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp,
-      )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    displayLarge = DesignTokens.Typography.displayLarge,
+    displayMedium = DesignTokens.Typography.displayMedium,
+    headlineLarge = DesignTokens.Typography.headlineLarge,
+    headlineMedium = DesignTokens.Typography.headlineMedium,
+    titleLarge = DesignTokens.Typography.titleLarge,
+    titleMedium = DesignTokens.Typography.titleMedium,
+    bodyLarge = DesignTokens.Typography.bodyLarge,
+    bodyMedium = DesignTokens.Typography.bodyMedium,
+    labelLarge = DesignTokens.Typography.labelLarge,
+    labelMedium = DesignTokens.Typography.labelMedium,
+    labelSmall = DesignTokens.Typography.labelSmall,
   )

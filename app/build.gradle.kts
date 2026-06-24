@@ -43,7 +43,7 @@ android {
       signingConfig = signingConfigs.getByName("release")
     }
     debug {
-      signingConfig = signingConfigs.getByName("debugConfig")
+      // No custom signing config — uses Android Studio default debug keystore
     }
   }
   compileOptions {

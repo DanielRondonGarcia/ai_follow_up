@@ -1,3 +1,40 @@
 <resources>
     <string name="app_name">AI Agent Monitor</string>
+
+    <!-- Provider display names (NOT dispatch literals) -->
+    <string name="provider_openai">OpenAI</string>
+    <string name="provider_anthropic">Anthropic</string>
+    <string name="provider_ollama">Ollama</string>
+
+    <!-- Content descriptions for accessibility -->
+    <string name="cd_provider">Proveedor %1$s</string>
+
+    <!-- Section labels (sentence-case Spanish, replacing English all-caps) -->
+    <string name="tipo_de_plan">Tipo de plan</string>
+    <string name="creditos">Créditos</string>
+    <string name="se_restablece_en">Se restablece en</string>
+    <string name="limite_alcanzado">Límite alcanzado</string>
+    <string name="ilimitado">Ilimitado</string>
+    <string name="activo">Activo</string>
+
+    <!-- Window labels -->
+    <string name="ventana_principal">Ventana primaria</string>
+    <string name="ventana_semanal">Ventana semanal</string>
+    <string name="historial_de_uso">Historial de uso</string>
+    <string name="tus_agentes_conectados">Tus agentes conectados</string>
+
+    <!-- Dashboard / actions -->
+    <string name="panel_de_control">Panel de control</string>
+    <string name="sincronizar">Sincronizar</string>
+    <string name="limpiar_historial">Limpiar historial</string>
+    <string name="borrar">Borrar</string>
+    <string name="cancelar">Cancelar</string>
+
+    <!-- Onboarding -->
+    <string name="cuentas_de_monitoreo">Cuentas de monitoreo</string>
+    <string name="agregar_agente">Agregar agente</string>
+    <string name="configuracion_manual">Configuración manual</string>
+
+    <!-- Parameterized strings (%1$s = provider display name) -->
+    <string name="limite_alcanzado_subtitulo">Uso de ventana semanal al 100%%. Se aplican restricciones de %1$s.</string>
 </resources>

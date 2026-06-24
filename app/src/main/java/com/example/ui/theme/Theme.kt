@@ -2,71 +2,34 @@ package com.example.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme =
-  darkColorScheme(
-    primary = Color(0xFFD0BCFF),
-    onPrimary = Color(0xFF381E72),
-    primaryContainer = Color(0xFF4F378B),
-    onPrimaryContainer = Color(0xFFEADDFF),
-    secondary = Color(0xFFCCC2DC),
-    onSecondary = Color(0xFF332D41),
-    background = Color(0xFF141218),
-    onBackground = Color(0xFFE6E1E5),
-    surface = Color(0xFF1C1B1F),
-    onSurface = Color(0xFFE6E1E5),
-    outline = Color(0xFF938F99),
-    errorContainer = Color(0xFF8C1D18),
-    onErrorContainer = Color(0xFFF9DEDC),
-    error = Color(0xFFF2B8B5)
-  )
-
-private val LightColorScheme =
-  lightColorScheme(
-    primary = Color(0xFF6750A4),
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEADDFF),
-    onPrimaryContainer = Color(0xFF21005D),
-    secondary = Color(0xFF625B71),
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8DEF8),
-    onSecondaryContainer = Color(0xFF1D192B),
-    background = Color(0xFFFEF7FF),
-    onBackground = Color(0xFF1D1B20),
-    surface = Color.White,
-    onSurface = Color(0xFF1D1B20),
-    surfaceVariant = Color(0xFFE7E0EC),
-    onSurfaceVariant = Color(0xFF49454F),
-    outline = Color(0xFFCAC4D0),
-    errorContainer = Color(0xFFF9DEDC),
-    onErrorContainer = Color(0xFF410002),
-    error = Color(0xFFB3261E)
-  )
+@Composable
+private fun tokenScheme(isDark: Boolean): ColorScheme = (if (isDark) darkColorScheme() else lightColorScheme()).copy(
+  primary = DesignTokens.Colors.Semantic.actionPrimary, onPrimary = DesignTokens.Colors.Semantic.textOnAction, primaryContainer = DesignTokens.Colors.Semantic.primaryContainer, onPrimaryContainer = DesignTokens.Colors.Semantic.onPrimaryContainer,
+  secondary = DesignTokens.Colors.Semantic.actionSecondary, onSecondary = DesignTokens.Colors.Semantic.textOnAction, secondaryContainer = DesignTokens.Colors.Semantic.secondaryContainer, onSecondaryContainer = DesignTokens.Colors.Semantic.onSecondaryContainer,
+  tertiary = DesignTokens.Colors.Semantic.tertiary, onTertiary = DesignTokens.Colors.Semantic.onTertiary, tertiaryContainer = DesignTokens.Colors.Semantic.tertiaryContainer, onTertiaryContainer = DesignTokens.Colors.Semantic.onTertiaryContainer,
+  background = DesignTokens.Colors.Semantic.surfacePage, onBackground = DesignTokens.Colors.Semantic.textPrimary, surface = DesignTokens.Colors.Semantic.surfaceCard, onSurface = DesignTokens.Colors.Semantic.textPrimary,
+  surfaceVariant = DesignTokens.Colors.Semantic.surfaceVariant, onSurfaceVariant = DesignTokens.Colors.Semantic.textSecondary, outline = DesignTokens.Colors.Semantic.outline, outlineVariant = DesignTokens.Colors.Semantic.outlineVariant,
+  error = DesignTokens.Colors.Semantic.error, onError = DesignTokens.Colors.Semantic.onError, errorContainer = DesignTokens.Colors.Semantic.errorContainer, onErrorContainer = DesignTokens.Colors.Semantic.onErrorContainer,
+)
 
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
-  dynamicColor: Boolean = false, // Set to false to enforce High Density theme
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
-  val colorScheme =
-    when {
-      dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-        val context = LocalContext.current
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-      }
-
-      darkTheme -> DarkColorScheme
-      else -> LightColorScheme
-    }
-
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  val scheme = when {
+    dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+      if (darkTheme) dynamicDarkColorScheme(LocalContext.current) else dynamicLightColorScheme(LocalContext.current)
+    else -> tokenScheme(darkTheme)
+  }
+  MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)
 }
