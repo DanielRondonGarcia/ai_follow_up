@@ -106,7 +106,7 @@ fun UsageChart(
             }
 
             val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-            val textColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            val textColor = MaterialTheme.colorScheme.onSurfaceVariant
 
             Column {
                 Canvas(

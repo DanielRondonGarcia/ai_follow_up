@@ -23,6 +23,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.Account
+import com.example.ui.theme.ProviderAnthropic
+import com.example.ui.theme.ProviderOllama
+import com.example.ui.theme.ProviderOpenAi
 
 @Composable
 fun ProfileSelector(
@@ -115,9 +118,9 @@ fun ProfileSelector(
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             val badgeColor = when (account.provider) {
-                                                "Anthropic" -> Color(0xFFD97706) // Claude Amber
-                                                "Ollama" -> Color(0xFF6B7280) // Ollama Slate Gray
-                                                else -> Color(0xFF10B981) // ChatGPT Emerald
+                                                "Anthropic" -> ProviderAnthropic // Claude Amber
+                                                "Ollama" -> ProviderOllama // Ollama Slate Gray
+                                                else -> ProviderOpenAi // ChatGPT Emerald
                                             }
                                             Surface(
                                                 color = badgeColor,
@@ -181,7 +184,7 @@ fun ProfileSelector(
                     Button(
                         onClick = { onAddAutoClick("OpenAI") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                        colors = ButtonDefaults.buttonColors(containerColor = ProviderOpenAi)
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -192,7 +195,7 @@ fun ProfileSelector(
                     Button(
                         onClick = { onAddAutoClick("Anthropic") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD97706))
+                        colors = ButtonDefaults.buttonColors(containerColor = ProviderAnthropic)
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -203,7 +206,7 @@ fun ProfileSelector(
                     Button(
                         onClick = { onAddAutoClick("Ollama") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6B7280))
+                        colors = ButtonDefaults.buttonColors(containerColor = ProviderOllama)
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))

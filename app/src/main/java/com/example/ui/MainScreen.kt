@@ -35,6 +35,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.Account
 import com.example.data.UsageLog
 import com.example.ui.components.*
+import com.example.ui.theme.ProviderAnthropic
+import com.example.ui.theme.ProviderOllama
+import com.example.ui.theme.ProviderOpenAi
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -56,6 +59,7 @@ fun MainScreen(
     val showAddManualDialog by viewModel.showAddManualDialog.collectAsStateWithLifecycle()
     var showProfileSelector by remember { mutableStateOf(false) }
     var selectedAccountDetailId by remember { mutableStateOf<Int?>(null) }
+    var showClearHistoryConfirm by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -384,7 +388,7 @@ fun MainScreen(
                                         }
                                         IconButton(
                                             onClick = { viewModel.clearError() },
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier.size(36.dp)
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Close,
@@ -482,12 +486,13 @@ fun MainScreen(
                                 }
                                 IconButton(
                                     onClick = { viewModel.clearError() },
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         tint = MaterialTheme.colorScheme.onErrorContainer,
-                                        contentDescription = "Cerrar"
+                                        contentDescription = "Cerrar",
+                                        modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
@@ -527,12 +532,16 @@ fun MainScreen(
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Limit Reached",
+                                        text = "Límite Alcanzado",
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onErrorContainer
                                     )
                                     Text(
-                                        text = "Secondary window usage at 100%. OpenAI Plus restrictions applied.",
+                                        text = when (activeAccount?.provider) {
+                                            "Anthropic" -> "Uso de ventana semanal al 100%. Se aplican restricciones de Claude Pro."
+                                            "Ollama" -> "Uso de ventana semanal al 100%. Se aplican restricciones de Ollama."
+                                            else -> "Uso de ventana semanal al 100%. Se aplican restricciones de ChatGPT Plus."
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                                     )
@@ -940,7 +949,7 @@ fun MainScreen(
                             horizontalArrangement = Arrangement.End
                         ) {
                             TextButton(
-                                onClick = { viewModel.deleteLogs() },
+                                onClick = { showClearHistoryConfirm = true },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
                                 Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = null)
@@ -1016,6 +1025,30 @@ fun MainScreen(
             onDismiss = { viewModel.setShowLoginWebView(false) },
             onTokenCaptured = { provider, token, cookies, userAgent, userId ->
                 viewModel.handleWebViewLoginSuccess(provider, token, cookies, userAgent, userId)
+            }
+        )
+    }
+
+    if (showClearHistoryConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryConfirm = false },
+            title = { Text("Limpiar Historial") },
+            text = { Text("¿Seguro que quieres borrar todo el historial de uso de esta cuenta? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteLogs()
+                        showClearHistoryConfirm = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Borrar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryConfirm = false }) {
+                    Text("Cancelar")
+                }
             }
         )
     }
@@ -1119,7 +1152,7 @@ fun OnboardingState(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
-                            color = Color(0xFF10B981),
+                            color = ProviderOpenAi,
                             shape = CircleShape,
                             modifier = Modifier.size(36.dp)
                         ) {
@@ -1144,7 +1177,7 @@ fun OnboardingState(
                     Button(
                         onClick = onAddAutoOpenAI,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF059669) else Color(0xFF10B981)),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF059669) else ProviderOpenAi),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1172,7 +1205,7 @@ fun OnboardingState(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
-                            color = Color(0xFFD97706),
+                            color = ProviderAnthropic,
                             shape = CircleShape,
                             modifier = Modifier.size(36.dp)
                         ) {
@@ -1197,7 +1230,7 @@ fun OnboardingState(
                     Button(
                         onClick = onAddAutoAnthropic,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFFB45309) else Color(0xFFD97706)),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFFB45309) else ProviderAnthropic),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1225,7 +1258,7 @@ fun OnboardingState(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
-                            color = Color(0xFF6B7280),
+                            color = ProviderOllama,
                             shape = CircleShape,
                             modifier = Modifier.size(36.dp)
                         ) {
@@ -1250,7 +1283,7 @@ fun OnboardingState(
                     Button(
                         onClick = onAddAutoOllama,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF4B5563) else Color(0xFF6B7280)),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isDark) Color(0xFF4B5563) else ProviderOllama),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1342,7 +1375,7 @@ fun ActiveAccountOverviewCard(
                             .clip(CircleShape)
                             .background(
                                 if (activeLog != null && activeLog.primaryUsedPercent >= 100) {
-                                    Color.Red
+                                    MaterialTheme.colorScheme.error
                                 } else {
                                     MaterialTheme.colorScheme.primary
                                 }
@@ -1477,7 +1510,7 @@ fun RateLimitCard(
                 CircularProgressIndicator(
                     progress = progressVal,
                     modifier = Modifier.fillMaxSize(),
-                    color = if (percentage >= 100) Color.Red else accentColor,
+                    color = if (percentage >= 100) MaterialTheme.colorScheme.error else accentColor,
                     strokeWidth = 8.dp
                 )
                 
@@ -1486,7 +1519,7 @@ fun RateLimitCard(
                         text = "${percentage.toInt()}%",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (percentage >= 100) Color.Red else MaterialTheme.colorScheme.onSurface
+                        color = if (percentage >= 100) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "Usado",
@@ -1783,9 +1816,9 @@ fun AgentOverviewCard(
 ) {
     val isDark = isSystemInDarkTheme()
     val badgeColor = when (account.provider) {
-        "Anthropic" -> Color(0xFFD97706) // Amber
-        "Ollama" -> Color(0xFF6B7280) // Gray
-        else -> Color(0xFF10B981) // Emerald
+        "Anthropic" -> ProviderAnthropic // Amber
+        "Ollama" -> ProviderOllama // Gray
+        else -> ProviderOpenAi // Emerald
     }
     
     Card(
@@ -1930,7 +1963,7 @@ fun AgentOverviewCard(
                             Text(
                                 text = "Saldo: ${latestLog.balance}",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF10B981)
+                                color = ProviderOpenAi
                             )
                         }
                     }
