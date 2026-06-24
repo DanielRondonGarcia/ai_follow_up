@@ -37,4 +37,34 @@
 
     <!-- Parameterized strings (%1$s = provider display name) -->
     <string name="limite_alcanzado_subtitulo">Uso de ventana semanal al 100%%. Se aplican restricciones de %1$s.</string>
+
+    <!-- Component content descriptions (accessibility) -->
+    <string name="cd_dismiss_error">Cerrar mensaje de error</string>
+    <string name="cd_agent_card">Tarjeta del agente %1$s. Tocar para ver detalles.</string>
+    <string name="cd_gauge_primary">Ventana primaria, %1$d por ciento usado</string>
+    <string name="cd_gauge_weekly">Ventana semanal, %1$d por ciento usado</string>
+    <string name="cd_credits_balance">Balance de créditos: %1$s</string>
+    <string name="cd_chart_usage">Gráfico de uso mostrando %1$d puntos de datos</string>
+
+    <!-- Component labels -->
+    <string name="sync_pending">Sincronización pendiente</string>
+    <string name="uso_de_sesion">Uso de sesión</string>
+    <string name="uso_semanal">Uso semanal</string>
+    <string name="sin_datos_de_uso">Sin datos de uso. Tocar para entrar y actualizar.</string>
+    <string name="usado">Usado</string>
+    <string name="se_restablece_en_label">Se restablece en:</string>
+    <string name="balance_creditos">Balance / Créditos</string>
+    <string name="uso_ilimitado_activado">Uso ilimitado activado</string>
+    <string name="limites_controlados">Límites controlados</string>
+    <string name="corto_plazo">Corto plazo</string>
+    <string name="siete_dias">7 días</string>
+    <string name="aun_no_hay_datos">Aún no hay datos de historial. Presiona Sincronizar para guardar un registro.</string>
+    <string name="na">N/A</string>
+    <string name="por_ciento_usado">%1$d%% usado</string>
+    <string name="plan_label">Plan: %1$s</string>
+    <string name="saldo_label">Saldo: %1$s</string>
+    <string name="rate_limits">Límites de tasa</string>
+    <string name="actualizado_recientemente">Actualizado ahora</string>
+    <string name="usd">USD</string>
+    <string name="ver_detalles">Ver detalles</string>
 </resources>
