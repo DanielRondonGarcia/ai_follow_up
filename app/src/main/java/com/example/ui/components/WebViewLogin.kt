@@ -15,9 +15,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
@@ -39,6 +41,13 @@ fun WebViewLogin(
         )
     }
 
+    val titleLoginClaude = stringResource(R.string.inicia_sesion_claude)
+    val titleLoginOllama = stringResource(R.string.inicia_sesion_ollama)
+    val titleLoginChatgpt = stringResource(R.string.inicia_sesion_chatgpt)
+    val subtitleLogin = stringResource(R.string.inicia_sesion_subtitulo)
+    val cdCerrar = stringResource(R.string.cd_cerrar)
+    val cdRecargar = stringResource(R.string.cd_recargar)
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -46,15 +55,15 @@ fun WebViewLogin(
                     Column {
                         Text(
                             text = when (provider) {
-                                "Anthropic" -> "Inicia sesión en Claude"
-                                "Ollama" -> "Inicia sesión en Ollama"
-                                else -> "Inicia sesión en ChatGPT"
+                                "Anthropic" -> titleLoginClaude
+                                "Ollama" -> titleLoginOllama
+                                else -> titleLoginChatgpt
                             },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Inicia sesión normalmente para conectar",
+                            text = subtitleLogin,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -62,12 +71,12 @@ fun WebViewLogin(
                 },
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Cerrar")
+                        Icon(imageVector = Icons.Default.Close, contentDescription = cdCerrar)
                     }
                 },
                 actions = {
                     IconButton(onClick = { webViewInstance?.reload() }) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Recargar")
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = cdRecargar)
                     }
                 }
             )

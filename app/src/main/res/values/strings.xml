@@ -103,7 +103,7 @@
     <string name="monitor_codex">Codex Monitor</string>
     <string name="token_valido">Auth Token válido</string>
     <string name="sincronizado_correctamente">Sincronizado correctamente</string>
-    <string name="refresh">REFRESCAR</string>
+    <string name="refresh">Refrescar</string>
     <string name="sincronizando_primera_vez">Sincronizando estado de uso por primera vez...</string>
     <string name="limpiar_historial_titulo">Limpiar Historial</string>
     <string name="limpiar_historial_confirmacion">¿Seguro que quieres borrar todo el historial de uso de esta cuenta? Esta acción no se puede deshacer.</string>
@@ -117,4 +117,49 @@
     <string name="usos_ilimitado">Uso ilimitado activado</string>
     <string name="limites_controlados_label">Límites controlados</string>
     <string name="cd_error">Error</string>
+
+    <!-- PR 4: remaining copy unification (replaces inline literals) -->
+
+    <!-- ProfileSelector dialog -->
+    <string name="cuentas_de_monitoreo_title">Cuentas de monitoreo</string>
+    <string name="no_hay_cuentas">No hay cuentas agregadas.</string>
+    <string name="cd_perfil">Perfil</string>
+    <string name="cd_eliminar">Eliminar</string>
+    <string name="badge_claude">CLAUDE</string>
+    <string name="badge_ollama">OLLAMA</string>
+    <string name="badge_gpt">GPT</string>
+    <string name="vincular_chatgpt_auto">Vincular ChatGPT (Auto)</string>
+    <string name="vincular_claude_auto">Vincular Claude (Auto)</string>
+    <string name="vincular_ollama_auto">Vincular Ollama (Auto)</string>
+    <string name="listo">Listo</string>
+
+    <!-- AddManualDialog -->
+    <string name="configuracion_manual_title">Configuración manual</string>
+    <string name="manual_dialog_intro">Selecciona el proveedor y pega los valores del encabezado de tu curl de ChatGPT o Claude, o las cookies para Ollama. Al guardar, se validarán consultando el estado actual de uso.</string>
+    <string name="nombre_correo_opcional">Nombre o correo (opcional)</string>
+    <string name="id_organizacion_requerido">ID de organización (requerido)</string>
+    <string name="token_auth_bearer">Token de autorización (Bearer)</string>
+    <string name="session_key_label">sessionKey (sk-ant-...)</string>
+    <string name="cookies_semicolon">Cookies (separadas por punto y coma)</string>
+    <string name="cookies_session">Cookies (session=...)</string>
+    <string name="cookies_opcional">Cookies (opcional)</string>
+    <string name="user_agent_label">User-Agent (agente de usuario)</string>
+    <string name="validar_y_guardar">Validar y guardar</string>
+    <string name="placeholder_email_openai">ej. team_marmota@rondon.cloud</string>
+    <string name="placeholder_email_anthropic">ej. Marmot Claude</string>
+    <string name="placeholder_email_ollama">ej. Ollama User</string>
+    <string name="placeholder_org_id">e0ce05ba-61d3-4d12-af6c-c370abb91eb4</string>
+    <string name="placeholder_token_openai">eyJhbGciOiJSUzI1NiIs...</string>
+    <string name="placeholder_token_anthropic">sk-ant-sid02-...</string>
+    <string name="placeholder_cookies_openai">oai-did=...; __Secure-next-auth.session-token.0=...</string>
+    <string name="placeholder_cookies_ollama">session=...</string>
+    <string name="placeholder_cookies_anthropic">sessionKey=sk-ant-...; activeOrg=...</string>
+
+    <!-- WebViewLogin -->
+    <string name="inicia_sesion_claude">Inicia sesión en Claude</string>
+    <string name="inicia_sesion_ollama">Inicia sesión en Ollama</string>
+    <string name="inicia_sesion_chatgpt">Inicia sesión en ChatGPT</string>
+    <string name="inicia_sesion_subtitulo">Inicia sesión normalmente para conectar</string>
+    <string name="cd_cerrar">Cerrar</string>
+    <string name="cd_recargar">Recargar</string>
 </resources>

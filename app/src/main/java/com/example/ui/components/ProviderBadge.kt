@@ -40,6 +40,11 @@ fun ProviderBadge(
   }
   val cdProvider = stringResource(R.string.cd_provider, providerName)
   val badgeColor = ProviderColor.resolve(provider)
+  val badgeLabel = when (provider) {
+    "Anthropic" -> stringResource(R.string.badge_claude)
+    "Ollama" -> stringResource(R.string.badge_ollama)
+    else -> stringResource(R.string.badge_gpt)
+  }
 
   Surface(
     color = badgeColor,
@@ -49,11 +54,7 @@ fun ProviderBadge(
     },
   ) {
     Text(
-      text = when (provider) {
-        "Anthropic" -> "CLAUDE"
-        "Ollama" -> "OLLAMA"
-        else -> "GPT"
-      },
+      text = badgeLabel,
       style = MaterialTheme.typography.labelSmall.copy(
         fontWeight = FontWeight.Bold,
         color = Color.White,

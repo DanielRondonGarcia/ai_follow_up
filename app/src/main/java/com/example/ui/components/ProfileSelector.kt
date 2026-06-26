@@ -18,10 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.Account
 import com.example.ui.theme.ProviderAnthropic
 import com.example.ui.theme.ProviderOllama
@@ -37,11 +38,25 @@ fun ProfileSelector(
     onAddManualClick: () -> Unit,
     onAddAutoClick: (provider: String) -> Unit
 ) {
+    val titleText = stringResource(R.string.cuentas_de_monitoreo_title)
+    val emptyText = stringResource(R.string.no_hay_cuentas)
+    val cdPerfil = stringResource(R.string.cd_perfil)
+    val cdEliminar = stringResource(R.string.cd_eliminar)
+    val planLabelFormat = stringResource(R.string.plan_label)
+    val badgeClaude = stringResource(R.string.badge_claude)
+    val badgeOllama = stringResource(R.string.badge_ollama)
+    val badgeGpt = stringResource(R.string.badge_gpt)
+    val vincularChatgpt = stringResource(R.string.vincular_chatgpt_auto)
+    val vincularClaude = stringResource(R.string.vincular_claude_auto)
+    val vincularOllama = stringResource(R.string.vincular_ollama_auto)
+    val manualAvanzado = stringResource(R.string.configuracion_manual_avanzado)
+    val listoLabel = stringResource(R.string.listo)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Cuentas de Monitoreo",
+                text = titleText,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -61,7 +76,7 @@ fun ProfileSelector(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No hay cuentas agregadas.",
+                            text = emptyText,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -106,7 +121,7 @@ fun ProfileSelector(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Person,
-                                        contentDescription = "Perfil",
+                                        contentDescription = cdPerfil,
                                         tint = if (isActive) {
                                             MaterialTheme.colorScheme.primary
                                         } else {
@@ -118,9 +133,9 @@ fun ProfileSelector(
                                     Column {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             val badgeColor = when (account.provider) {
-                                                "Anthropic" -> ProviderAnthropic // Claude Amber
-                                                "Ollama" -> ProviderOllama // Ollama Slate Gray
-                                                else -> ProviderOpenAi // ChatGPT Emerald
+                                                "Anthropic" -> ProviderAnthropic
+                                                "Ollama" -> ProviderOllama
+                                                else -> ProviderOpenAi
                                             }
                                             Surface(
                                                 color = badgeColor,
@@ -129,9 +144,9 @@ fun ProfileSelector(
                                             ) {
                                                 Text(
                                                     text = when (account.provider) {
-                                                        "Anthropic" -> "CLAUDE"
-                                                        "Ollama" -> "OLLAMA"
-                                                        else -> "GPT"
+                                                        "Anthropic" -> badgeClaude
+                                                        "Ollama" -> badgeOllama
+                                                        else -> badgeGpt
                                                     },
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = Color.White,
@@ -150,7 +165,7 @@ fun ProfileSelector(
                                             )
                                         }
                                         Text(
-                                            text = "Plan: ${account.planType.uppercase()}",
+                                            text = planLabelFormat.format(account.planType.uppercase()),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -163,7 +178,7 @@ fun ProfileSelector(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
-                                        contentDescription = "Eliminar",
+                                        contentDescription = cdEliminar,
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -188,7 +203,7 @@ fun ProfileSelector(
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vincular ChatGPT (Auto)")
+                        Text(vincularChatgpt)
                     }
 
                     // Claude Auto button
@@ -199,7 +214,7 @@ fun ProfileSelector(
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vincular Claude (Auto)")
+                        Text(vincularClaude)
                     }
 
                     // Ollama Auto button
@@ -210,7 +225,7 @@ fun ProfileSelector(
                     ) {
                         Icon(imageVector = Icons.Default.Web, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vincular Ollama (Auto)")
+                        Text(vincularOllama)
                     }
 
                     // Manual Config button
@@ -220,14 +235,14 @@ fun ProfileSelector(
                     ) {
                         Icon(imageVector = Icons.Default.Add, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Configuración Manual (Avanzado)")
+                        Text(manualAvanzado)
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Listo")
+                Text(listoLabel)
             }
         }
     )
