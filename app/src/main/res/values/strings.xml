@@ -67,4 +67,54 @@
     <string name="actualizado_recientemente">Actualizado ahora</string>
     <string name="usd">USD</string>
     <string name="ver_detalles">Ver detalles</string>
+
+    <!-- Onboarding screen -->
+    <string name="seguimiento_de_agentes">Seguimiento de Agentes</string>
+    <string name="onboarding_subtitulo">Monitorea tu uso de ChatGPT y Claude, y prevé bloqueos de tasa límite (Rate Limits) de forma automática o manual.</string>
+    <string name="selecciona_proveedor">Selecciona un proveedor para comenzar:</string>
+    <string name="openai_chatgpt">OpenAI ChatGPT</string>
+    <string name="openai_chatgpt_desc">Monitorea límites de mensajes y cuotas de tu cuenta ChatGPT Plus/Team.</string>
+    <string name="anthropic_claude">Anthropic Claude</string>
+    <string name="anthropic_claude_desc">Monitorea límites de mensajes y cuotas de tu cuenta Claude Pro.</string>
+    <string name="ollama_cloud">Ollama Cloud</string>
+    <string name="ollama_cloud_desc">Monitorea límites de sesión y cuotas de tu cuenta en Ollama.com.</string>
+    <string name="vincular_auto">Vincular automáticamente (Auto)</string>
+    <string name="configuracion_manual_avanzado">Configuración Manual (Avanzado)</string>
+    <string name="onboarding_nota">El modo automático abre un navegador seguro integrado para iniciar sesión y capturar la sesión. No guardamos tus contraseñas.</string>
+    <string name="cd_vincular_openai">Vincular cuenta OpenAI automáticamente</string>
+    <string name="cd_vincular_anthropic">Vincular cuenta Anthropic automáticamente</string>
+    <string name="cd_vincular_ollama">Vincular cuenta Ollama automáticamente</string>
+    <string name="cd_configuracion_manual">Abrir configuración manual</string>
+
+    <!-- Dashboard screen -->
+    <string name="panel_de_control_subtitulo">Desliza hacia abajo para actualizar el estado de todos tus agentes en tiempo real.</string>
+    <string name="agentes_conectados_count">%1$d Agentes Conectados</string>
+    <string name="gestionar_cuentas">Gestionar Cuentas</string>
+    <string name="agregar_cuenta">Agregar Cuenta</string>
+    <string name="cd_volver_listado">Volver al listado</string>
+    <string name="cd_cuentas">Cuentas</string>
+    <string name="cd_agregar_agente">Agregar agente</string>
+    <string name="cd_actualizar">Arrastra para actualizar</string>
+    <string name="actualizando">Actualizando...</string>
+
+    <!-- AccountDetail screen -->
+    <string name="monitor_claude">Claude Monitor</string>
+    <string name="monitor_ollama">Ollama Monitor</string>
+    <string name="monitor_codex">Codex Monitor</string>
+    <string name="token_valido">Auth Token válido</string>
+    <string name="sincronizado_correctamente">Sincronizado correctamente</string>
+    <string name="refresh">REFRESCAR</string>
+    <string name="sincronizando_primera_vez">Sincronizando estado de uso por primera vez...</string>
+    <string name="limpiar_historial_titulo">Limpiar Historial</string>
+    <string name="limpiar_historial_confirmacion">¿Seguro que quieres borrar todo el historial de uso de esta cuenta? Esta acción no se puede deshacer.</string>
+    <string name="auth_token">Auth Token</string>
+    <string name="cd_sincronizar">Sincronizar</string>
+    <string name="cd_actualizar_activo">Actualizar</string>
+    <string name="alerta">Alerta</string>
+    <string name="usos_mensajes_creditos">Uso de Mensajes y Créditos</string>
+    <string name="mensajes_locales_est">Mensajes Locales (Est.)</string>
+    <string name="mensajes_nube_est">Mensajes Nube (Est.)</string>
+    <string name="usos_ilimitado">Uso ilimitado activado</string>
+    <string name="limites_controlados_label">Límites controlados</string>
+    <string name="cd_error">Error</string>
 </resources>
