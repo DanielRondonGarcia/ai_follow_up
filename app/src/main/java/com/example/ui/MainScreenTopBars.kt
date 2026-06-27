@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Troubleshoot
@@ -67,7 +67,7 @@ internal fun DetailTopBar(
     ) {
       IconButton(onClick = onBack, modifier = Modifier.size(36.dp)) {
         Icon(
-          imageVector = Icons.Default.ArrowBack,
+          imageVector = Icons.AutoMirrored.Filled.ArrowBack,
           contentDescription = backCd,
           tint = MaterialTheme.colorScheme.onSurface,
         )

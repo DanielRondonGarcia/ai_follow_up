@@ -123,10 +123,10 @@ object DesignTokens {
 
       // -- Action ----------------------------------------------------------
       val actionPrimary: Color
-        @Composable get() = if (isSystemInDarkTheme()) Primitives.blue600 else Primitives.blue600
+        @Composable get() = if (isSystemInDarkTheme()) Primitives.blue400 else Primitives.blue600
 
       val actionPrimaryHover: Color
-        @Composable get() = if (isSystemInDarkTheme()) Primitives.blue700 else Primitives.blue700
+        @Composable get() = if (isSystemInDarkTheme()) Primitives.blue300 else Primitives.blue700
 
       val actionPrimaryActive: Color
         @Composable get() = if (isSystemInDarkTheme()) Primitives.blue700 else Primitives.blue800
