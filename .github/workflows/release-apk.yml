@@ -24,6 +24,7 @@ jobs:
       HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
       HAS_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD != '' }}
       HAS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD != '' }}
+      GRADLE_OPTS: -Dorg.gradle.daemon=false -Djava.awt.headless=true
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v4
@@ -70,14 +71,14 @@ jobs:
           KEYSTORE_PATH: ${{ runner.temp }}/release-keystore.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease --console=plain
+        run: ./gradlew --no-daemon --no-configuration-cache :app:assembleRelease --console=plain
 
       - name: Build debug APK fallback
         if: ${{ env.HAS_KEYSTORE != 'true' || env.HAS_STORE_PASSWORD != 'true' || env.HAS_KEY_PASSWORD != 'true' }}
         env:
           VERSION_NAME: ${{ steps.release_version.outputs.version }}
           VERSION_CODE: ${{ steps.release_version.outputs.version_code }}
-        run: ./gradlew :app:assembleDebug --console=plain
+        run: ./gradlew --no-daemon --no-configuration-cache :app:assembleDebug --console=plain
 
       - name: Select APK asset
         id: apk
