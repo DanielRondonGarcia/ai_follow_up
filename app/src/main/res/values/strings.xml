@@ -170,4 +170,18 @@
     <string name="sesion_expirada_detalle">Sesion expirada, vuelve a autenticarte</string>
     <string name="cd_reauth">Volver a autenticar esta cuenta</string>
     <string name="cd_sync_account">Sincronizar esta cuenta</string>
+
+    <!-- AddManualDialog validation errors -->
+    <string name="err_userid_required">El ID de organizacion es obligatorio</string>
+    <string name="err_token_required">El token de autorizacion es obligatorio</string>
+    <string name="err_cookies_required">Las cookies son obligatorias</string>
+
+    <!-- AddManualDialog help section -->
+    <string name="help_title">Como obtener tus credenciales</string>
+    <string name="help_step1">1. Abre el sitio del proveedor en tu navegador</string>
+    <string name="help_step2">2. Inicia sesion normalmente</string>
+    <string name="help_step3">3. Abre DevTools (F12) en la pestana Network</string>
+    <string name="help_step4">4. Copia el header Authorization (Bearer) o las cookies</string>
+    <string name="help_show">Mostrar ayuda</string>
+    <string name="help_hide">Ocultar ayuda</string>
 </resources>

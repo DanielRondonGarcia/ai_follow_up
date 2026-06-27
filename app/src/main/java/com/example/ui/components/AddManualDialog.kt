@@ -3,6 +3,10 @@ package com.example.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -27,6 +31,13 @@ fun AddManualDialog(
     var userAgent by remember {
         mutableStateOf("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36")
     }
+
+    // Validation state: errors only show after blur or submit attempt (not live)
+    var hasSubmitted by remember { mutableStateOf(false) }
+    var userIdBlurred by remember { mutableStateOf(false) }
+    var tokenBlurred by remember { mutableStateOf(false) }
+    var cookiesBlurred by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
 
     val isConfirmEnabled = if (provider == "OpenAI") {
         token.trim().isNotEmpty() && cookies.trim().isNotEmpty()
@@ -58,6 +69,31 @@ fun AddManualDialog(
     val placeholderCookiesOllama = stringResource(R.string.placeholder_cookies_ollama)
     val placeholderCookiesAnthropic = stringResource(R.string.placeholder_cookies_anthropic)
 
+    // Validation error strings
+    val errUserId = stringResource(R.string.err_userid_required)
+    val errToken = stringResource(R.string.err_token_required)
+    val errCookies = stringResource(R.string.err_cookies_required)
+
+    // Help strings
+    val helpTitle = stringResource(R.string.help_title)
+    val helpStep1 = stringResource(R.string.help_step1)
+    val helpStep2 = stringResource(R.string.help_step2)
+    val helpStep3 = stringResource(R.string.help_step3)
+    val helpStep4 = stringResource(R.string.help_step4)
+    val helpShow = stringResource(R.string.help_show)
+    val helpHide = stringResource(R.string.help_hide)
+
+    // Per-provider required-field flags
+    val userIdRequired = provider == "Anthropic"
+    val tokenRequired = provider != "Ollama"
+    val cookiesRequired = provider != "Anthropic" || true // cookies always required or optional-but-needed
+
+    // Per-field error states
+    val userIdError = (hasSubmitted || userIdBlurred) && userIdRequired && userId.trim().isEmpty()
+    val tokenError = (hasSubmitted || tokenBlurred) && tokenRequired && token.trim().isEmpty()
+    val cookiesError = (hasSubmitted || cookiesBlurred) && cookies.trim().isEmpty() &&
+        (provider == "OpenAI" || provider == "Ollama")
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -80,7 +116,7 @@ fun AddManualDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                // Provider Segmented Control (Segmented Buttons alternative)
+                // Provider Segmented Control
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -122,7 +158,7 @@ fun AddManualDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Label / Email
+                // Label / Email (optional, no validation)
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -141,13 +177,15 @@ fun AddManualDialog(
                 )
 
                 if (provider == "Anthropic") {
-                    // Organization ID (only for Anthropic)
+                    // Organization ID (required for Anthropic)
                     OutlinedTextField(
                         value = userId,
                         onValueChange = { userId = it },
                         label = { Text(orgIdLabel) },
                         placeholder = { Text(placeholderOrgId) },
                         singleLine = true,
+                        isError = userIdError,
+                        supportingText = if (userIdError) { { Text(errUserId) } } else null,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -159,6 +197,8 @@ fun AddManualDialog(
                         onValueChange = { token = it },
                         label = { Text(if (provider == "OpenAI") tokenBearerLabel else sessionKeyLabel) },
                         placeholder = { Text(if (provider == "OpenAI") placeholderTokenOpenai else placeholderTokenAnthropic) },
+                        isError = tokenError,
+                        supportingText = if (tokenError) { { Text(errToken) } } else null,
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 4
                     )
@@ -186,6 +226,8 @@ fun AddManualDialog(
                             }
                         )
                     },
+                    isError = cookiesError,
+                    supportingText = if (cookiesError) { { Text(errCookies) } } else null,
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 4
                 )
@@ -198,11 +240,57 @@ fun AddManualDialog(
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 2
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Collapsible help section
+                TextButton(
+                    onClick = { showHelp = !showHelp },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Help,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (showHelp) helpHide else helpShow)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = if (showHelp) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+
+                if (showHelp) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = helpTitle,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            )
+                            Text(text = helpStep1, style = MaterialTheme.typography.bodySmall)
+                            Text(text = helpStep2, style = MaterialTheme.typography.bodySmall)
+                            Text(text = helpStep3, style = MaterialTheme.typography.bodySmall)
+                            Text(text = helpStep4, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
+                    hasSubmitted = true
                     if (isConfirmEnabled) {
                         onSave(provider, email, token, cookies, userAgent, userId)
                     }
