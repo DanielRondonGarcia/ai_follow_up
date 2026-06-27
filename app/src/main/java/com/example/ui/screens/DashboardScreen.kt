@@ -52,12 +52,13 @@ import com.example.ui.theme.DesignTokens
  * official component) instead of the pre-redesign custom NestedScrollConnection.
  *
  * @param accounts the current list of accounts.
- * @param allLogs all usage logs across accounts (filtered per-card inside).
+ * @param latestLogByAccount latest usage log per account id (O(1) lookup per card).
  * @param isLoading global loading flag from the ViewModel.
  * @param errorMessage nullable error message; shown via [ErrorBanner] when non-null.
  * @param expiredAccounts set of account ids whose session is expired.
  * @param onAccountClick callback when a card is tapped (receives the account id).
  * @param onReauth callback when the re-auth CTA is tapped (receives account id).
+ * @param onSyncAccount callback when the per-card sync IconButton is tapped (receives account id).
  * @param onSyncAll callback to sync all accounts; receives an onComplete lambda
  *                   so the local refresh flag can be reset.
  * @param onClearError callback to dismiss the error banner.
@@ -67,12 +68,13 @@ import com.example.ui.theme.DesignTokens
 @Composable
 fun DashboardScreen(
   accounts: List<Account>,
-  allLogs: List<UsageLog>,
+  latestLogByAccount: Map<Int, UsageLog?>,
   isLoading: Boolean,
   errorMessage: String?,
   expiredAccounts: Set<Int>,
   onAccountClick: (Int) -> Unit,
   onReauth: (Int) -> Unit,
+  onSyncAccount: (Int) -> Unit,
   onSyncAll: (() -> Unit) -> Unit,
   onClearError: () -> Unit,
   modifier: Modifier = Modifier,
@@ -162,14 +164,13 @@ fun DashboardScreen(
 
       // Agent cards
       items(accounts, key = { it.id }) { account ->
-        val latestLog = allLogs.filter { it.accountId == account.id }
-          .maxByOrNull { it.timestamp }
         AgentOverviewCard(
           account = account,
-          latestLog = latestLog,
+          latestLog = latestLogByAccount[account.id],
           isExpired = account.id in expiredAccounts,
           onClick = { onAccountClick(account.id) },
           onReauth = onReauth,
+          onSyncAccount = onSyncAccount,
         )
       }
     }

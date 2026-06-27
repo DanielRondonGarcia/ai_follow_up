@@ -37,6 +37,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val allLogs: StateFlow<List<UsageLog>> = repository.allLogsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /**
+     * Latest [UsageLog] per account id, derived once from [allLogs].
+     *
+     * Replaces the per-card `allLogs.filter { it.accountId == account.id }.maxByOrNull { it.timestamp }`
+     * lookup (O(n) per item, O(n*m) per recomposition) with a single O(n)
+     * derivation followed by an O(1) map lookup per card.
+     */
+    val latestLogByAccount: StateFlow<Map<Int, UsageLog?>> = allLogs
+        .map { logs -> latestLogPerAccount(logs) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val usageLogs: StateFlow<List<UsageLog>> = activeAccount
         .flatMapLatest { account ->
@@ -112,58 +123,94 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                when (account.provider) {
-                    "Ollama" -> {
-                        val result = ollamaService.fetchUsage(
-                            cookies = account.cookies,
-                            userAgent = account.userAgent,
-                            email = account.userId
-                        )
-                        handleSyncResult(account, result) { response ->
-                            val logEntry = mapOllamaResponseToLog(account.id, response)
-                            repository.insertLog(logEntry)
-                            account.copy(
-                                email = response.email,
-                                planType = response.planType,
-                                lastUpdated = System.currentTimeMillis()
-                            )
-                        }
-                    }
-                    "Anthropic" -> {
-                        val result = anthropicService.fetchUsage(
-                            orgId = account.userId,
-                            authToken = account.authToken,
-                            cookies = account.cookies,
-                            userAgent = account.userAgent
-                        )
-                        handleSyncResult(account, result) { response ->
-                            val logEntry = mapAnthropicResponseToLog(account.id, response)
-                            repository.insertLog(logEntry)
-                            account.copy(
-                                lastUpdated = System.currentTimeMillis()
-                            )
-                        }
-                    }
-                    else -> {
-                        val result = service.fetchUsage(
-                            authToken = account.authToken,
-                            cookies = account.cookies,
-                            userAgent = account.userAgent,
-                            userId = account.userId
-                        )
-                        handleSyncResult(account, result) { response ->
-                            val logEntry = mapResponseToLog(account.id, response)
-                            repository.insertLog(logEntry)
-                            account.copy(
-                                email = response.email,
-                                planType = response.planType,
-                                lastUpdated = System.currentTimeMillis()
-                            )
-                        }
-                    }
-                }
+                syncOneAccount(account)
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error fetching usage", e)
+                _errorMessage.value = e.localizedMessage ?: "Error de red desconocido"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Syncs a single account by dispatching to the provider-specific service.
+     *
+     * Encapsulates the `when (account.provider)` block that was previously
+     * duplicated between [syncActiveAccount] and [syncAllAccounts]. Does NOT
+     * manage [_isLoading] or [_errorMessage]; the caller owns the loading
+     * lifecycle. Throws on network/parse errors so the caller's try/catch can
+     * translate them into a user-facing message.
+     */
+    private suspend fun syncOneAccount(account: Account) {
+        when (account.provider) {
+            "Ollama" -> {
+                val result = ollamaService.fetchUsage(
+                    cookies = account.cookies,
+                    userAgent = account.userAgent,
+                    email = account.userId
+                )
+                handleSyncResult(account, result) { response ->
+                    val logEntry = mapOllamaResponseToLog(account.id, response)
+                    repository.insertLog(logEntry)
+                    account.copy(
+                        email = response.email,
+                        planType = response.planType,
+                        lastUpdated = System.currentTimeMillis()
+                    )
+                }
+            }
+            "Anthropic" -> {
+                val result = anthropicService.fetchUsage(
+                    orgId = account.userId,
+                    authToken = account.authToken,
+                    cookies = account.cookies,
+                    userAgent = account.userAgent
+                )
+                handleSyncResult(account, result) { response ->
+                    val logEntry = mapAnthropicResponseToLog(account.id, response)
+                    repository.insertLog(logEntry)
+                    account.copy(
+                        lastUpdated = System.currentTimeMillis()
+                    )
+                }
+            }
+            else -> {
+                val result = service.fetchUsage(
+                    authToken = account.authToken,
+                    cookies = account.cookies,
+                    userAgent = account.userAgent,
+                    userId = account.userId
+                )
+                handleSyncResult(account, result) { response ->
+                    val logEntry = mapResponseToLog(account.id, response)
+                    repository.insertLog(logEntry)
+                    account.copy(
+                        email = response.email,
+                        planType = response.planType,
+                        lastUpdated = System.currentTimeMillis()
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Syncs one account by id, identified from the dashboard list.
+     *
+     * Distinct from [syncActiveAccount] (syncs the active account) and
+     * [syncAllAccounts] (syncs every account). Used by the per-card sync
+     * IconButton introduced in PR 2. Returns early if the account id is no
+     * longer present. Manages [_isLoading] around the work via try/finally.
+     */
+    fun syncAccount(accountId: Int) {
+        val account = allAccounts.value.find { it.id == accountId } ?: return
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                syncOneAccount(account)
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error syncing account ${account.email}", e)
                 _errorMessage.value = e.localizedMessage ?: "Error de red desconocido"
             } finally {
                 _isLoading.value = false
@@ -210,56 +257,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val accountsList = allAccounts.value
                 for (account in accountsList) {
                     try {
-                        when (account.provider) {
-                            "Ollama" -> {
-                                val result = ollamaService.fetchUsage(
-                                    cookies = account.cookies,
-                                    userAgent = account.userAgent,
-                                    email = account.userId
-                                )
-                                handleSyncResult(account, result) { response ->
-                                    val logEntry = mapOllamaResponseToLog(account.id, response)
-                                    repository.insertLog(logEntry)
-                                    account.copy(
-                                        email = response.email,
-                                        planType = response.planType,
-                                        lastUpdated = System.currentTimeMillis()
-                                    )
-                                }
-                            }
-                            "Anthropic" -> {
-                                val result = anthropicService.fetchUsage(
-                                    orgId = account.userId,
-                                    authToken = account.authToken,
-                                    cookies = account.cookies,
-                                    userAgent = account.userAgent
-                                )
-                                handleSyncResult(account, result) { response ->
-                                    val logEntry = mapAnthropicResponseToLog(account.id, response)
-                                    repository.insertLog(logEntry)
-                                    account.copy(
-                                        lastUpdated = System.currentTimeMillis()
-                                    )
-                                }
-                            }
-                            else -> {
-                                val result = service.fetchUsage(
-                                    authToken = account.authToken,
-                                    cookies = account.cookies,
-                                    userAgent = account.userAgent,
-                                    userId = account.userId
-                                )
-                                handleSyncResult(account, result) { response ->
-                                    val logEntry = mapResponseToLog(account.id, response)
-                                    repository.insertLog(logEntry)
-                                    account.copy(
-                                        email = response.email,
-                                        planType = response.planType,
-                                        lastUpdated = System.currentTimeMillis()
-                                    )
-                                }
-                            }
-                        }
+                        syncOneAccount(account)
                     } catch (e: Exception) {
                         Log.e("MainViewModel", "Error syncAllAccounts para ${account.email}", e)
                     }
@@ -740,3 +738,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 }
+
+/**
+ * Derives the latest [UsageLog] per account id from a flat list of logs.
+ *
+ * Pure function: single O(n) pass (groupBy) then one [maxByOrNull] per group.
+ * Extracted from [MainViewModel.latestLogByAccount] so the derivation is
+ * unit-testable without instantiating the AndroidViewModel (which needs an
+ * Application + Room database). A null entry is produced for an account id
+ * only if the group is empty, which cannot happen via groupBy; in practice
+ * every value is non-null, but the type stays nullable to match the original
+ * inline expression.
+ */
+fun latestLogPerAccount(logs: List<UsageLog>): Map<Int, UsageLog?> =
+    logs.groupBy { it.accountId }.mapValues { it.value.maxByOrNull { log -> log.timestamp } }

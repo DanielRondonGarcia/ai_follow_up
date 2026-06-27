@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.example.data.Account
-import com.example.data.UsageLog
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.theme.MyApplicationTheme
 import org.junit.Rule
@@ -59,12 +58,13 @@ class ReAuthFlowTest {
         Surface {
           DashboardScreen(
             accounts = listOf(expiredAccount),
-            allLogs = emptyList(),
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = null,
             expiredAccounts = setOf(7),
             onAccountClick = {},
             onReauth = {},
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -83,12 +83,13 @@ class ReAuthFlowTest {
         Surface {
           DashboardScreen(
             accounts = listOf(healthyAccount),
-            allLogs = emptyList(),
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = null,
             expiredAccounts = emptySet(),
             onAccountClick = {},
             onReauth = {},
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -109,12 +110,13 @@ class ReAuthFlowTest {
         Surface {
           DashboardScreen(
             accounts = listOf(expiredAccount),
-            allLogs = emptyList(),
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = null,
             expiredAccounts = setOf(7),
             onAccountClick = {},
             onReauth = { id -> reauthId = id },
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -133,12 +135,13 @@ class ReAuthFlowTest {
         Surface {
           DashboardScreen(
             accounts = listOf(expiredAccount, healthyAccount),
-            allLogs = emptyList(),
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = null,
             expiredAccounts = setOf(7),
             onAccountClick = {},
             onReauth = {},
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )

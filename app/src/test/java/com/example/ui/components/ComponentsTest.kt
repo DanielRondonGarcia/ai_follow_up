@@ -147,6 +147,7 @@ class ComponentsTest {
             isExpired = false,
             onClick = {},
             onReauth = {},
+            onSyncAccount = {},
           )
         }
       }
@@ -175,6 +176,7 @@ class ComponentsTest {
             isExpired = false,
             onClick = {},
             onReauth = {},
+            onSyncAccount = {},
           )
         }
       }

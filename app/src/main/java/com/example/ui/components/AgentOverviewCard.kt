@@ -6,18 +6,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -58,6 +62,8 @@ import java.util.Locale
  * @param isExpired true when the account id is in the expired set.
  * @param onClick callback when the card is tapped.
  * @param onReauth callback when the re-auth CTA is tapped (receives account id).
+ * @param onSyncAccount callback when the per-card sync IconButton is tapped
+ *                      (receives account id). Only rendered on non-expired cards.
  * @param modifier optional layout modifier.
  */
 @Composable
@@ -67,6 +73,7 @@ fun AgentOverviewCard(
   isExpired: Boolean,
   onClick: () -> Unit,
   onReauth: (Int) -> Unit,
+  onSyncAccount: (Int) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -77,6 +84,7 @@ fun AgentOverviewCard(
   }
   val cdCard = stringResource(R.string.cd_agent_card, providerName)
   val cdDetails = stringResource(R.string.ver_detalles)
+  val cdSyncAccount = stringResource(R.string.cd_sync_account)
   val syncPending = stringResource(R.string.sync_pending)
   val usageSessionLabel = stringResource(R.string.uso_de_sesion)
   val usageWeeklyLabel = stringResource(R.string.uso_semanal)
@@ -114,7 +122,7 @@ fun AgentOverviewCard(
       modifier = Modifier.padding(DesignTokens.Spacing.lg),
       verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.md),
     ) {
-      // Header: Badge + Email + Chevron
+      // Header: Badge + Email + (optional Sync) + Chevron
       Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -123,6 +131,7 @@ fun AgentOverviewCard(
         Row(
           verticalAlignment = Alignment.CenterVertically,
           horizontalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.sm),
+          modifier = Modifier.weight(1f),
         ) {
           ProviderBadge(provider = account.provider)
           Text(
@@ -133,11 +142,29 @@ fun AgentOverviewCard(
             overflow = TextOverflow.Ellipsis,
           )
         }
-        Icon(
-          imageVector = Icons.Default.ChevronRight,
-          contentDescription = cdDetails,
-          tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // Action group: Sync IconButton (non-expired only) + ChevronRight.
+        // The explicit Spacer(xxxl = 48dp) guarantees the 44px minimum tap-target
+        // separation between the two icon buttons. SpaceBetween pushes the
+        // whole action group to the trailing edge.
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+        ) {
+          if (!isExpired) {
+            IconButton(onClick = { onSyncAccount(account.id) }) {
+              Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = cdSyncAccount,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+            Spacer(Modifier.width(DesignTokens.Spacing.xxxl))
+          }
+          Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = cdDetails,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
       }
 
       if (isExpired) {

@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsDisplayed
 import com.example.data.Account
-import com.example.data.UsageLog
 import com.example.ui.theme.MyApplicationTheme
 import org.junit.Rule
 import org.junit.Test
@@ -42,19 +41,19 @@ class DashboardScreenTest {
         userAgent = "",
       ),
     )
-    val logs: List<UsageLog> = emptyList()
 
     composeTestRule.setContent {
       MyApplicationTheme {
         Surface {
           DashboardScreen(
             accounts = accounts,
-            allLogs = logs,
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = null,
             expiredAccounts = emptySet(),
             onAccountClick = {},
             onReauth = {},
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -88,12 +87,13 @@ class DashboardScreenTest {
         Surface {
           DashboardScreen(
             accounts = accounts,
-            allLogs = emptyList(),
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = "Error de conexion",
             expiredAccounts = emptySet(),
             onAccountClick = {},
             onReauth = {},
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -111,12 +111,13 @@ class DashboardScreenTest {
         Surface {
           DashboardScreen(
             accounts = emptyList(),
-            allLogs = emptyList(),
+            latestLogByAccount = emptyMap(),
             isLoading = false,
             errorMessage = null,
             expiredAccounts = emptySet(),
             onAccountClick = {},
             onReauth = {},
+            onSyncAccount = {},
             onSyncAll = {},
             onClearError = {},
           )

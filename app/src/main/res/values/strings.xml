@@ -169,4 +169,5 @@
     <string name="sesion_expirada_desc">La sesion de esta cuenta ha caducado. Vuelve a autenticarte para seguir monitoreando.</string>
     <string name="sesion_expirada_detalle">Sesion expirada, vuelve a autenticarte</string>
     <string name="cd_reauth">Volver a autenticar esta cuenta</string>
+    <string name="cd_sync_account">Sincronizar esta cuenta</string>
 </resources>

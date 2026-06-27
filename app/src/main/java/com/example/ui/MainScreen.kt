@@ -44,7 +44,7 @@ fun MainScreen(
 ) {
   val accounts by viewModel.allAccounts.collectAsStateWithLifecycle()
   val activeAccount by viewModel.activeAccount.collectAsStateWithLifecycle()
-  val allLogs by viewModel.allLogs.collectAsStateWithLifecycle()
+  val latestLogByAccount by viewModel.latestLogByAccount.collectAsStateWithLifecycle()
   val logs by viewModel.usageLogs.collectAsStateWithLifecycle()
   val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
   val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
@@ -112,7 +112,7 @@ fun MainScreen(
           )
           is NavRoute.Dashboard -> DashboardScreen(
             accounts = accounts,
-            allLogs = allLogs,
+            latestLogByAccount = latestLogByAccount,
             isLoading = isLoading,
             errorMessage = errorMessage,
             expiredAccounts = expiredAccounts,
@@ -121,6 +121,7 @@ fun MainScreen(
               val account = accounts.firstOrNull { it.id == id }
               if (account != null) viewModel.startReAuth(id, account.provider)
             },
+            onSyncAccount = { id -> viewModel.syncAccount(id) },
             onSyncAll = { onComplete -> viewModel.syncAllAccounts(onComplete) },
             onClearError = { viewModel.clearError() },
           )
