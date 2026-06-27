@@ -31,6 +31,7 @@ fun WebViewLogin(
 ) {
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var isLoadingPage by remember { mutableStateOf(true) }
+    var isFreshLogin by remember { mutableStateOf(true) }
     var currentUrl by remember {
         mutableStateOf(
             when (provider) {
@@ -276,15 +277,33 @@ fun WebViewLogin(
                             }
                         }
 
-                        // Load initial URL
-                        when (provider) {
-                            "Anthropic" -> loadUrl("https://claude.ai/login")
-                            "Ollama" -> loadUrl("https://ollama.com/settings")
-                            else -> loadUrl("https://chatgpt.com/auth/login")
+                        // Load initial URL — clear all web cookies on fresh login so
+                        // a second account of the same provider does not auto-login
+                        // to the previous session. Reload button does NOT touch the flag.
+                        val loginUrl = when (provider) {
+                            "Anthropic" -> "https://claude.ai/login"
+                            "Ollama" -> "https://ollama.com/settings"
+                            else -> "https://chatgpt.com/auth/login"
+                        }
+                        if (isFreshLogin) {
+                            CookieManager.getInstance().removeAllCookies { _ ->
+                                loadUrl(loginUrl)
+                                isFreshLogin = false
+                            }
+                        } else {
+                            loadUrl(loginUrl)
                         }
                     }
                 }
             )
+
+            // Destroy the WebView when the composable leaves composition to prevent
+            // cookie leaks and memory leaks.
+            DisposableEffect(webViewInstance) {
+                onDispose {
+                    webViewInstance?.destroy()
+                }
+            }
 
             if (isLoadingPage) {
                 LinearProgressIndicator(

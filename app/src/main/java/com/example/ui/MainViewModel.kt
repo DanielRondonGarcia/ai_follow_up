@@ -582,6 +582,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteAccount(account: Account) {
         viewModelScope.launch {
             repository.deleteAccount(account)
+            // Clear all web cookies so a new account of the same provider
+            // does not auto-login to the deleted account's session.
+            android.webkit.CookieManager.getInstance().removeAllCookies { }
             // If the deleted account was active, pick the first other account (if any) as active
             val currentAccounts = allAccounts.value
             val remaining = currentAccounts.filter { it.id != account.id }
