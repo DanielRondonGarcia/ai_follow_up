@@ -31,9 +31,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.Account
+import com.example.ui.theme.DesignTokens
 
 /**
  * Top bars for MainScreen, extracted to keep MainScreen.kt under 200 lines.
@@ -96,7 +96,7 @@ internal fun DetailTopBar(
           text = activeAccount?.email ?: "",
           style = MaterialTheme.typography.labelSmall.copy(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 11.sp,
+            fontSize = DesignTokens.Sizing.micro11,
           ),
         )
       }
@@ -155,7 +155,7 @@ internal fun DashboardTopBar(
             text = agentsConnectedLabel,
             style = MaterialTheme.typography.bodySmall.copy(
               color = MaterialTheme.colorScheme.onSurfaceVariant,
-              fontSize = 11.sp,
+              fontSize = DesignTokens.Sizing.micro11,
             ),
           )
         }

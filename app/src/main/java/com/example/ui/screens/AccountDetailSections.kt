@@ -28,7 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.Account
 import com.example.data.UsageLog
@@ -109,8 +108,8 @@ internal fun PlanTypeCard(activeAccount: Account?, activeLog: UsageLog, modifier
         style = MaterialTheme.typography.labelSmall.copy(
           fontWeight = FontWeight.Bold,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
-          letterSpacing = 1.sp,
-          fontSize = 9.sp,
+          letterSpacing = DesignTokens.Sizing.letterSpacingUnit,
+          fontSize = DesignTokens.Sizing.micro9,
         ),
       )
       Row(
@@ -136,7 +135,7 @@ internal fun PlanTypeCard(activeAccount: Account?, activeLog: UsageLog, modifier
             style = MaterialTheme.typography.labelSmall.copy(
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.onPrimaryContainer,
-              fontSize = 8.sp,
+              fontSize = DesignTokens.Sizing.micro8,
             ),
           )
         }
@@ -171,8 +170,8 @@ internal fun CreditsMiniCard(activeLog: UsageLog, modifier: Modifier = Modifier)
         style = MaterialTheme.typography.labelSmall.copy(
           fontWeight = FontWeight.Bold,
           color = MaterialTheme.colorScheme.onSurfaceVariant,
-          letterSpacing = 1.sp,
-          fontSize = 9.sp,
+          letterSpacing = DesignTokens.Sizing.letterSpacingUnit,
+          fontSize = DesignTokens.Sizing.micro9,
         ),
       )
       Row(
@@ -192,7 +191,7 @@ internal fun CreditsMiniCard(activeLog: UsageLog, modifier: Modifier = Modifier)
           style = MaterialTheme.typography.bodySmall.copy(
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 10.sp,
+            fontSize = DesignTokens.Sizing.micro10,
           ),
           modifier = Modifier.padding(bottom = 2.dp),
         )

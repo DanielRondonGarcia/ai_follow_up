@@ -467,6 +467,26 @@ object DesignTokens {
   }
 
   // ---------------------------------------------------------------------------
+  // SIZING — scalar sp tokens for micro font sizes and letter-spacing units
+  // that do not map to a Material3 typography style. Used inside .copy() on
+  // existing Material3 styles (labelSmall, bodySmall) to override a single
+  // field without re-declaring fontFamily/weight/lineHeight.
+  // Source: tokens/typography.json composite-style overrides
+  // ---------------------------------------------------------------------------
+
+  object Sizing {
+    val micro8 = 8.sp              // badge "Activo" label
+    val micro9 = 9.sp              // overline mini-labels (plan/credits card titles)
+    val micro10 = 10.sp            // USD suffix, refresh label, estimation title
+    val micro11 = 11.sp            // onboarding footnote, topbar subtitle
+    val micro15 = 15.sp            // onboarding footnote lineHeight
+    val small13 = 13.sp            // provider-card button label
+    val small14 = 14.sp            // manual-config button label
+    val hero22 = 22.sp             // onboarding subtitle lineHeight
+    val letterSpacingUnit = 1.sp   // overline letter-spacing
+  }
+
+  // ---------------------------------------------------------------------------
   // MOTION — duration scale + easing (from tokens/motion.json)
   // ---------------------------------------------------------------------------
 

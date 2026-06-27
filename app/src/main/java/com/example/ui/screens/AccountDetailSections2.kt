@@ -34,7 +34,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.UsageLog
 import com.example.ui.theme.DesignTokens
@@ -89,7 +88,7 @@ internal fun AuthTokenCard(isLoading: Boolean, onSync: () -> Unit) {
             text = stringResource(R.string.sincronizado_correctamente),
             style = MaterialTheme.typography.labelSmall.copy(
               color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-              fontSize = 10.sp,
+              fontSize = DesignTokens.Sizing.micro10,
             ),
           )
         }
@@ -118,7 +117,7 @@ internal fun AuthTokenCard(isLoading: Boolean, onSync: () -> Unit) {
             text = stringResource(R.string.refresh),
             style = MaterialTheme.typography.labelSmall.copy(
               fontWeight = FontWeight.ExtraBold,
-              fontSize = 10.sp,
+              fontSize = DesignTokens.Sizing.micro10,
             ),
           )
         }
@@ -232,7 +231,7 @@ internal fun EstimationMetricCard(
         )
         Text(
           text = title,
-          style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp),
+          style = MaterialTheme.typography.bodySmall.copy(fontSize = DesignTokens.Sizing.micro10),
           color = MaterialTheme.colorScheme.onSurfaceVariant,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,

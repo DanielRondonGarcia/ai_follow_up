@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,7 +94,7 @@ fun AddManualDialog(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        Text(stringResource(R.string.provider_openai), fontSize = 12.sp)
+                        Text(stringResource(R.string.provider_openai), fontSize = MaterialTheme.typography.labelSmall.fontSize)
                     }
                     Button(
                         onClick = { provider = "Anthropic" },
@@ -106,7 +105,7 @@ fun AddManualDialog(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        Text(stringResource(R.string.provider_anthropic), fontSize = 12.sp)
+                        Text(stringResource(R.string.provider_anthropic), fontSize = MaterialTheme.typography.labelSmall.fontSize)
                     }
                     Button(
                         onClick = { provider = "Ollama" },
@@ -117,7 +116,7 @@ fun AddManualDialog(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        Text(stringResource(R.string.provider_ollama), fontSize = 12.sp)
+                        Text(stringResource(R.string.provider_ollama), fontSize = MaterialTheme.typography.labelSmall.fontSize)
                     }
                 }
 
