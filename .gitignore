@@ -1,18 +1,38 @@
+# Android / Gradle / Kotlin
 *.iml
 .gradle
 .kotlin
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Secrets / keystores
 .env
+.env.example
 debug.keystore
+my-upload-key.jks
+*.keystore
+*.jks
+
+# IDE
+.DS_Store
+/.idea/
+.idea/
+
+# Agent / design-system tooling (not part of the Android app)
+/.atl/
+/.claude/
+/CLAUDE.md
+/accessibility/
+/components/
+/content/
+/design-systems/
+/frameworks/
+/scripts/
+/taste/
+/tokens/
+/workflows/
+/openspec/
