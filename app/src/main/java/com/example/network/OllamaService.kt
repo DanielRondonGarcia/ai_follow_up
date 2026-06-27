@@ -6,17 +6,19 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 
-class OllamaService {
-    private val client = OkHttpClient.Builder()
+open class OllamaService {
+    protected open val client = OkHttpClient.Builder()
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
 
-    @Throws(Exception::class)
+    protected open fun settingsEndpoint(): String = "https://ollama.com/settings"
+
     suspend fun fetchUsage(
         cookies: String,
-        userAgent: String
-    ): OllamaUsageResponse = withContext(Dispatchers.IO) {
+        userAgent: String,
+        email: String
+    ): SyncResult<OllamaUsageResponse> = withContext(Dispatchers.IO) {
         val targetUserAgent = if (userAgent.trim().isNotEmpty()) {
             userAgent.trim()
         } else {
@@ -24,20 +26,58 @@ class OllamaService {
         }
 
         val request = Request.Builder()
-            .url("https://ollama.com/settings")
+            .url(settingsEndpoint())
             .header("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
             .header("accept-language", "en-US,en;q=0.5")
             .header("cookie", cookies.trim())
             .header("user-agent", targetUserAgent)
             .build()
 
-        client.newCall(request).execute().use { response ->
-            val bodyString = response.body?.string() ?: throw IOException("Cuerpo de respuesta vacío")
-            if (!response.isSuccessful) {
-                throw IOException("Código de error HTTP: ${response.code}")
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    return@withContext SyncResult.NetworkError(
+                        IOException("Codigo de error HTTP: ${response.code}")
+                    )
+                }
+                val bodyString = response.body?.string()
+                    ?: return@withContext SyncResult.ParseError(
+                        IOException("Cuerpo de respuesta vacio")
+                    )
+                if (isOllamaSessionExpired(bodyString)) {
+                    return@withContext SyncResult.AuthExpired("Ollama", email)
+                }
+                val parsed = try {
+                    parseOllamaHtml(bodyString)
+                } catch (e: Exception) {
+                    return@withContext SyncResult.ParseError(e)
+                }
+                return@withContext SyncResult.Success(parsed)
             }
-            return@withContext parseOllamaHtml(bodyString)
+        } catch (e: IOException) {
+            return@withContext SyncResult.NetworkError(e)
+        } catch (e: Exception) {
+            return@withContext SyncResult.ParseError(e)
         }
+    }
+
+    /**
+     * Pure predicate: classifies an Ollama /settings HTML body as a login page
+     * (session expired) vs a valid settings dashboard. No network needed.
+     *
+     * A page is considered expired when it does NOT contain the two aria-labels
+     * the parser keys on ("Session usage" and "Weekly usage"), OR it contains a
+     * sign-in marker (/signin path or a password input). Empty or garbage input
+     * returns false so the caller falls through to ParseError, not AuthExpired.
+     */
+    fun isOllamaSessionExpired(html: String): Boolean {
+        if (html.isBlank()) return false
+        val hasSession = html.contains("aria-label=\"Session usage", ignoreCase = true)
+        val hasWeekly = html.contains("aria-label=\"Weekly usage", ignoreCase = true)
+        val hasSignin = html.contains("/signin") ||
+            html.contains("name=\"password\"") ||
+            html.contains("type=\"password\"")
+        return (!hasSession && !hasWeekly) || hasSignin
     }
 
     fun parseOllamaHtml(html: String): OllamaUsageResponse {

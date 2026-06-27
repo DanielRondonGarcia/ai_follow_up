@@ -55,7 +55,9 @@ import com.example.ui.theme.DesignTokens
  * @param allLogs all usage logs across accounts (filtered per-card inside).
  * @param isLoading global loading flag from the ViewModel.
  * @param errorMessage nullable error message; shown via [ErrorBanner] when non-null.
+ * @param expiredAccounts set of account ids whose session is expired.
  * @param onAccountClick callback when a card is tapped (receives the account id).
+ * @param onReauth callback when the re-auth CTA is tapped (receives account id).
  * @param onSyncAll callback to sync all accounts; receives an onComplete lambda
  *                   so the local refresh flag can be reset.
  * @param onClearError callback to dismiss the error banner.
@@ -68,7 +70,9 @@ fun DashboardScreen(
   allLogs: List<UsageLog>,
   isLoading: Boolean,
   errorMessage: String?,
+  expiredAccounts: Set<Int>,
   onAccountClick: (Int) -> Unit,
+  onReauth: (Int) -> Unit,
   onSyncAll: (() -> Unit) -> Unit,
   onClearError: () -> Unit,
   modifier: Modifier = Modifier,
@@ -163,7 +167,9 @@ fun DashboardScreen(
         AgentOverviewCard(
           account = account,
           latestLog = latestLog,
+          isExpired = account.id in expiredAccounts,
           onClick = { onAccountClick(account.id) },
+          onReauth = onReauth,
         )
       }
     }

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -47,16 +49,24 @@ import java.util.Locale
  * usage progress bars when [latestLog] is non-null; shows a loading
  * placeholder when null.
  *
+ * When [isExpired] is true, the card renders an "expired" visual state with a
+ * "Volver a autenticar" CTA instead of the gauges. The card remains clickable
+ * to navigate to detail, but the re-auth button captures its own click.
+ *
  * @param account the account to display.
  * @param latestLog the most recent UsageLog for this account, or null (loading).
+ * @param isExpired true when the account id is in the expired set.
  * @param onClick callback when the card is tapped.
+ * @param onReauth callback when the re-auth CTA is tapped (receives account id).
  * @param modifier optional layout modifier.
  */
 @Composable
 fun AgentOverviewCard(
   account: Account,
   latestLog: UsageLog?,
+  isExpired: Boolean,
   onClick: () -> Unit,
+  onReauth: (Int) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val context = LocalContext.current
@@ -71,6 +81,10 @@ fun AgentOverviewCard(
   val usageSessionLabel = stringResource(R.string.uso_de_sesion)
   val usageWeeklyLabel = stringResource(R.string.uso_semanal)
   val noDataText = stringResource(R.string.sin_datos_de_uso)
+  val expiredLabel = stringResource(R.string.sesion_expirada)
+  val expiredDesc = stringResource(R.string.sesion_expirada_desc)
+  val reauthLabel = stringResource(R.string.volver_a_autenticar)
+  val reauthCd = stringResource(R.string.cd_reauth)
 
   Card(
     modifier = modifier
@@ -84,12 +98,16 @@ fun AgentOverviewCard(
       },
     shape = RoundedCornerShape(DesignTokens.Radius.xl),
     colors = CardDefaults.cardColors(
-      containerColor = MaterialTheme.colorScheme.surface,
+      containerColor = if (isExpired) {
+        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+      } else {
+        MaterialTheme.colorScheme.surface
+      },
     ),
     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     border = BorderStroke(
-      DesignTokens.Spacing.none,
-      MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+      if (isExpired) 1.dp else DesignTokens.Spacing.none,
+      if (isExpired) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
     ),
   ) {
     Column(
@@ -122,7 +140,29 @@ fun AgentOverviewCard(
         )
       }
 
-      if (latestLog != null) {
+      if (isExpired) {
+        // Expired state: badge text + description + re-auth CTA (no gauges)
+        Text(
+          text = expiredLabel,
+          style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+          color = MaterialTheme.colorScheme.error,
+        )
+        Text(
+          text = expiredDesc,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Button(
+          onClick = { onReauth(account.id) },
+          colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.error,
+            contentColor = MaterialTheme.colorScheme.onError,
+          ),
+          modifier = Modifier.semantics { this.contentDescription = reauthCd },
+        ) {
+          Text(reauthLabel)
+        }
+      } else if (latestLog != null) {
         // Primary usage gauge
         val primaryPercent = latestLog.primaryUsedPercent
         val isPrimaryHigh = primaryPercent > 80.0

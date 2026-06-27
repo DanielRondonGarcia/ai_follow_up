@@ -17,6 +17,9 @@ interface AccountDao {
     @Query("SELECT * FROM accounts WHERE id = :id")
     suspend fun getAccountById(id: Int): Account?
 
+    @Query("SELECT * FROM accounts WHERE provider = :provider AND userId = :userId LIMIT 1")
+    suspend fun getAccountByProviderAndUserId(provider: String, userId: String): Account?
+
     @Query("SELECT * FROM accounts WHERE userId = :userId LIMIT 1")
     suspend fun getAccountByUserId(userId: String): Account?
 
@@ -38,6 +41,26 @@ interface AccountDao {
         val account = getAccountById(accountId)
         if (account != null) {
             updateAccount(account.copy(isActive = true))
+        }
+    }
+
+    /**
+     * Upsert by (provider, userId). Looks up the existing row; if found,
+     * updates it in place (preserving id + UsageLog history) and returns the
+     * existing id. If not found, inserts a new row and returns the new id.
+     *
+     * No schema change, no unique index: this avoids a v3 destructive
+     * migration while enforcing the (provider, userId) invariant atomically
+     * under @Transaction.
+     */
+    @Transaction
+    suspend fun upsertAccount(account: Account): Long {
+        val existing = getAccountByProviderAndUserId(account.provider, account.userId)
+        return if (existing != null) {
+            updateAccount(account.copy(id = existing.id))
+            existing.id.toLong()
+        } else {
+            insertAccount(account)
         }
     }
 }

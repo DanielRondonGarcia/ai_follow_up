@@ -144,7 +144,9 @@ class ComponentsTest {
           AgentOverviewCard(
             account = account,
             latestLog = log,
+            isExpired = false,
             onClick = {},
+            onReauth = {},
           )
         }
       }
@@ -170,7 +172,9 @@ class ComponentsTest {
           AgentOverviewCard(
             account = account,
             latestLog = null,
+            isExpired = false,
             onClick = {},
+            onReauth = {},
           )
         }
       }

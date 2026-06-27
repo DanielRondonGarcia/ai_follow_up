@@ -14,9 +14,11 @@ import com.example.network.AnthropicService
 import com.example.network.AnthropicUsageResponse
 import com.example.network.OllamaService
 import com.example.network.OllamaUsageResponse
+import com.example.network.SyncResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
@@ -61,6 +63,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _showAddManualDialog = MutableStateFlow(false)
     val showAddManualDialog: StateFlow<Boolean> = _showAddManualDialog.asStateFlow()
 
+    private val _expiredAccounts = MutableStateFlow<Set<Int>>(emptySet())
+    val expiredAccounts: StateFlow<Set<Int>> = _expiredAccounts.asStateFlow()
+
+    private var pendingReAuthAccountId: Int? = null
+
     // Automatically sync on startup if an active account is present
     init {
         viewModelScope.launch {
@@ -81,6 +88,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _showLoginWebView.value = true
     }
 
+    /**
+     * Re-auth entry point. Opens the WebView for the account's provider and
+     * remembers which account id is pending so the success callback upserts
+     * into the existing row (by provider+userId) instead of inserting a new one.
+     */
+    fun startReAuth(accountId: Int, provider: String) {
+        pendingReAuthAccountId = accountId
+        startLoginWebView(provider)
+    }
+
     fun setShowAddManualDialog(show: Boolean) {
         _showAddManualDialog.value = show
     }
@@ -95,62 +112,92 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                if (account.provider == "Ollama") {
-                    val response = ollamaService.fetchUsage(
-                        cookies = account.cookies,
-                        userAgent = account.userAgent
-                    )
-                    
-                    val logEntry = mapOllamaResponseToLog(account.id, response)
-                    repository.insertLog(logEntry)
-
-                    val updatedAccount = account.copy(
-                        email = response.email,
-                        planType = response.planType,
-                        lastUpdated = System.currentTimeMillis()
-                    )
-                    repository.updateAccount(updatedAccount)
-                } else if (account.provider == "Anthropic") {
-                    val response = anthropicService.fetchUsage(
-                        orgId = account.userId,
-                        authToken = account.authToken,
-                        cookies = account.cookies,
-                        userAgent = account.userAgent
-                    )
-                    
-                    val logEntry = mapAnthropicResponseToLog(account.id, response)
-                    repository.insertLog(logEntry)
-
-                    val updatedAccount = account.copy(
-                        lastUpdated = System.currentTimeMillis()
-                    )
-                    repository.updateAccount(updatedAccount)
-                } else {
-                    val response = service.fetchUsage(
-                        authToken = account.authToken,
-                        cookies = account.cookies,
-                        userAgent = account.userAgent
-                    )
-                    
-                    // 1. Insert a new usage log
-                    val logEntry = mapResponseToLog(account.id, response)
-                    repository.insertLog(logEntry)
-
-                    // 2. Update existing account profile (if email or plan type changed)
-                    val updatedAccount = account.copy(
-                        email = response.email,
-                        planType = response.planType,
-                        lastUpdated = System.currentTimeMillis()
-                    )
-                    repository.updateAccount(updatedAccount)
+                when (account.provider) {
+                    "Ollama" -> {
+                        val result = ollamaService.fetchUsage(
+                            cookies = account.cookies,
+                            userAgent = account.userAgent,
+                            email = account.userId
+                        )
+                        handleSyncResult(account, result) { response ->
+                            val logEntry = mapOllamaResponseToLog(account.id, response)
+                            repository.insertLog(logEntry)
+                            account.copy(
+                                email = response.email,
+                                planType = response.planType,
+                                lastUpdated = System.currentTimeMillis()
+                            )
+                        }
+                    }
+                    "Anthropic" -> {
+                        val result = anthropicService.fetchUsage(
+                            orgId = account.userId,
+                            authToken = account.authToken,
+                            cookies = account.cookies,
+                            userAgent = account.userAgent
+                        )
+                        handleSyncResult(account, result) { response ->
+                            val logEntry = mapAnthropicResponseToLog(account.id, response)
+                            repository.insertLog(logEntry)
+                            account.copy(
+                                lastUpdated = System.currentTimeMillis()
+                            )
+                        }
+                    }
+                    else -> {
+                        val result = service.fetchUsage(
+                            authToken = account.authToken,
+                            cookies = account.cookies,
+                            userAgent = account.userAgent,
+                            userId = account.userId
+                        )
+                        handleSyncResult(account, result) { response ->
+                            val logEntry = mapResponseToLog(account.id, response)
+                            repository.insertLog(logEntry)
+                            account.copy(
+                                email = response.email,
+                                planType = response.planType,
+                                lastUpdated = System.currentTimeMillis()
+                            )
+                        }
+                    }
                 }
-                
-                _errorMessage.value = null
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error fetching usage", e)
                 _errorMessage.value = e.localizedMessage ?: "Error de red desconocido"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Translates a SyncResult into account update + expired-set management.
+     * On Success: updates the account, clears the id from expiredAccounts.
+     * On AuthExpired: adds the id to expiredAccounts (no error message).
+     * On NetworkError/ParseError: sets a generic error message.
+     */
+    private suspend fun <T> handleSyncResult(
+        account: Account,
+        result: SyncResult<T>,
+        onSuccess: suspend (T) -> Account,
+    ) {
+        when (result) {
+            is SyncResult.Success -> {
+                val updatedAccount = onSuccess(result.data)
+                repository.updateAccount(updatedAccount)
+                _expiredAccounts.value = _expiredAccounts.value - account.id
+                _errorMessage.value = null
+            }
+            is SyncResult.AuthExpired -> {
+                _expiredAccounts.value = _expiredAccounts.value + account.id
+                _errorMessage.value = null
+            }
+            is SyncResult.NetworkError -> {
+                _errorMessage.value = result.cause.localizedMessage ?: "Error de red desconocido"
+            }
+            is SyncResult.ParseError -> {
+                _errorMessage.value = result.cause.localizedMessage ?: "Error al analizar la respuesta"
             }
         }
     }
@@ -163,52 +210,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val accountsList = allAccounts.value
                 for (account in accountsList) {
                     try {
-                        if (account.provider == "Ollama") {
-                            val response = ollamaService.fetchUsage(
-                                cookies = account.cookies,
-                                userAgent = account.userAgent
-                            )
-                            val logEntry = mapOllamaResponseToLog(account.id, response)
-                            repository.insertLog(logEntry)
-                            val updatedAccount = account.copy(
-                                email = response.email,
-                                planType = response.planType,
-                                lastUpdated = System.currentTimeMillis()
-                            )
-                            repository.updateAccount(updatedAccount)
-                        } else if (account.provider == "Anthropic") {
-                            val response = anthropicService.fetchUsage(
-                                orgId = account.userId,
-                                authToken = account.authToken,
-                                cookies = account.cookies,
-                                userAgent = account.userAgent
-                            )
-                            val logEntry = mapAnthropicResponseToLog(account.id, response)
-                            repository.insertLog(logEntry)
-                            val updatedAccount = account.copy(
-                                lastUpdated = System.currentTimeMillis()
-                            )
-                            repository.updateAccount(updatedAccount)
-                        } else {
-                            val response = service.fetchUsage(
-                                authToken = account.authToken,
-                                cookies = account.cookies,
-                                userAgent = account.userAgent
-                            )
-                            val logEntry = mapResponseToLog(account.id, response)
-                            repository.insertLog(logEntry)
-                            val updatedAccount = account.copy(
-                                email = response.email,
-                                planType = response.planType,
-                                lastUpdated = System.currentTimeMillis()
-                            )
-                            repository.updateAccount(updatedAccount)
+                        when (account.provider) {
+                            "Ollama" -> {
+                                val result = ollamaService.fetchUsage(
+                                    cookies = account.cookies,
+                                    userAgent = account.userAgent,
+                                    email = account.userId
+                                )
+                                handleSyncResult(account, result) { response ->
+                                    val logEntry = mapOllamaResponseToLog(account.id, response)
+                                    repository.insertLog(logEntry)
+                                    account.copy(
+                                        email = response.email,
+                                        planType = response.planType,
+                                        lastUpdated = System.currentTimeMillis()
+                                    )
+                                }
+                            }
+                            "Anthropic" -> {
+                                val result = anthropicService.fetchUsage(
+                                    orgId = account.userId,
+                                    authToken = account.authToken,
+                                    cookies = account.cookies,
+                                    userAgent = account.userAgent
+                                )
+                                handleSyncResult(account, result) { response ->
+                                    val logEntry = mapAnthropicResponseToLog(account.id, response)
+                                    repository.insertLog(logEntry)
+                                    account.copy(
+                                        lastUpdated = System.currentTimeMillis()
+                                    )
+                                }
+                            }
+                            else -> {
+                                val result = service.fetchUsage(
+                                    authToken = account.authToken,
+                                    cookies = account.cookies,
+                                    userAgent = account.userAgent,
+                                    userId = account.userId
+                                )
+                                handleSyncResult(account, result) { response ->
+                                    val logEntry = mapResponseToLog(account.id, response)
+                                    repository.insertLog(logEntry)
+                                    account.copy(
+                                        email = response.email,
+                                        planType = response.planType,
+                                        lastUpdated = System.currentTimeMillis()
+                                    )
+                                }
+                            }
                         }
                     } catch (e: Exception) {
                         Log.e("MainViewModel", "Error syncAllAccounts para ${account.email}", e)
                     }
                 }
-                _errorMessage.value = null
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error general en syncAllAccounts", e)
                 _errorMessage.value = e.localizedMessage ?: "Error al actualizar agentes"
@@ -227,152 +282,175 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 if (provider == "Ollama") {
-                    val response = ollamaService.fetchUsage(
+                    val result = ollamaService.fetchUsage(
                         cookies = cookies,
-                        userAgent = userAgent
+                        userAgent = userAgent,
+                        email = userId
                     )
-
-                    repository.insertAccount(
-                        Account(
-                            provider = "Ollama",
-                            email = response.email,
-                            userId = response.email,
-                            planType = response.planType,
-                            authToken = "",
-                            cookies = cookies,
-                            userAgent = userAgent,
-                            isActive = true,
-                            lastUpdated = System.currentTimeMillis()
-                        )
-                    )
-
-                    val savedAccount = repository.getAccountByUserId(response.email)
-                    if (savedAccount != null) {
-                        repository.setActiveAccount(savedAccount.id)
-                        val logEntry = mapOllamaResponseToLog(savedAccount.id, response)
-                        repository.insertLog(logEntry)
+                    when (result) {
+                        is SyncResult.Success -> {
+                            val response = result.data
+                            val newId = repository.upsertAccount(
+                                provider = "Ollama",
+                                userId = response.email,
+                                email = response.email,
+                                authToken = "",
+                                cookies = cookies,
+                                userAgent = userAgent,
+                                planType = response.planType,
+                            )
+                            repository.setActiveAccount(newId.toInt())
+                            val logEntry = mapOllamaResponseToLog(newId.toInt(), response)
+                            repository.insertLog(logEntry)
+                            clearPendingReAuth(newId.toInt())
+                        }
+                        is SyncResult.AuthExpired -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                        }
+                        is SyncResult.NetworkError -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                            _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${result.cause.localizedMessage}"
+                        }
+                        is SyncResult.ParseError -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                            _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${result.cause.localizedMessage}"
+                        }
                     }
                 } else if (provider == "Anthropic") {
-                    // Try to validate by fetching Anthropic usage
-                    val response = anthropicService.fetchUsage(
+                    val result = anthropicService.fetchUsage(
                         orgId = userId,
                         authToken = authToken,
                         cookies = cookies,
                         userAgent = userAgent
                     )
-
-                    // Deactivate others, save new account
-                    repository.insertAccount(
-                        Account(
-                            provider = "Anthropic",
-                            email = "Claude Account",
-                            userId = userId,
-                            planType = "Pro",
-                            authToken = authToken,
-                            cookies = cookies,
-                            userAgent = userAgent,
-                            isActive = true,
-                            lastUpdated = System.currentTimeMillis()
-                        )
-                    )
-
-                    // Switch active in local database
-                    val savedAccount = repository.getAccountByUserId(userId)
-                    if (savedAccount != null) {
-                        repository.setActiveAccount(savedAccount.id)
-                        val logEntry = mapAnthropicResponseToLog(savedAccount.id, response)
-                        repository.insertLog(logEntry)
+                    when (result) {
+                        is SyncResult.Success -> {
+                            val response = result.data
+                            val newId = repository.upsertAccount(
+                                provider = "Anthropic",
+                                userId = userId,
+                                email = "Claude Account",
+                                authToken = authToken,
+                                cookies = cookies,
+                                userAgent = userAgent,
+                                planType = "Pro",
+                            )
+                            repository.setActiveAccount(newId.toInt())
+                            val logEntry = mapAnthropicResponseToLog(newId.toInt(), response)
+                            repository.insertLog(logEntry)
+                            clearPendingReAuth(newId.toInt())
+                        }
+                        is SyncResult.AuthExpired -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                        }
+                        is SyncResult.NetworkError -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                            _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${result.cause.localizedMessage}"
+                        }
+                        is SyncResult.ParseError -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                            _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${result.cause.localizedMessage}"
+                        }
                     }
                 } else {
                     // OpenAI
-                    val response = service.fetchUsage(
+                    val result = service.fetchUsage(
                         authToken = authToken,
                         cookies = cookies,
-                        userAgent = userAgent
+                        userAgent = userAgent,
+                        userId = userId
                     )
-
-                    // Deactivate others, save new account
-                    repository.insertAccount(
-                        Account(
-                            provider = "OpenAI",
-                            email = response.email,
-                            userId = response.userId,
-                            planType = response.planType,
-                            authToken = authToken,
-                            cookies = cookies,
-                            userAgent = userAgent,
-                            isActive = true,
-                            lastUpdated = System.currentTimeMillis()
-                        )
-                    )
-
-                    // Switch active in local database
-                    val savedAccount = repository.getAccountByUserId(response.userId)
-                    if (savedAccount != null) {
-                        repository.setActiveAccount(savedAccount.id)
-                        // Insert the first usage log directly
-                        val logEntry = mapResponseToLog(savedAccount.id, response)
-                        repository.insertLog(logEntry)
+                    when (result) {
+                        is SyncResult.Success -> {
+                            val response = result.data
+                            val newId = repository.upsertAccount(
+                                provider = "OpenAI",
+                                userId = response.userId,
+                                email = response.email,
+                                authToken = authToken,
+                                cookies = cookies,
+                                userAgent = userAgent,
+                                planType = response.planType,
+                            )
+                            repository.setActiveAccount(newId.toInt())
+                            val logEntry = mapResponseToLog(newId.toInt(), response)
+                            repository.insertLog(logEntry)
+                            clearPendingReAuth(newId.toInt())
+                        }
+                        is SyncResult.AuthExpired -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                        }
+                        is SyncResult.NetworkError -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                            _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${result.cause.localizedMessage}"
+                        }
+                        is SyncResult.ParseError -> {
+                            saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                            _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${result.cause.localizedMessage}"
+                        }
                     }
                 }
 
                 _errorMessage.value = null
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error during web login handling", e)
-                // If it fails because we couldn't fetch details, try saving a generic account
-                // so the user doesn't lose credentials
-                if (provider == "Ollama") {
-                    val tempEmail = "ollama_user_${System.currentTimeMillis() % 10000}"
-                    val genericAccount = Account(
-                        provider = "Ollama",
-                        email = tempEmail,
-                        userId = tempEmail,
-                        planType = "Free",
-                        authToken = "",
-                        cookies = cookies,
-                        userAgent = userAgent,
-                        isActive = true,
-                        lastUpdated = System.currentTimeMillis()
-                    )
-                    val newId = repository.insertAccount(genericAccount)
-                    repository.setActiveAccount(newId.toInt())
-                } else if (provider == "Anthropic") {
-                    val tempEmail = "claude_user_${System.currentTimeMillis() % 10000}@anthropic.com"
-                    val genericAccount = Account(
-                        provider = "Anthropic",
-                        email = tempEmail,
-                        userId = userId.ifEmpty { "unknown_claude_org" },
-                        planType = "Pro",
-                        authToken = authToken,
-                        cookies = cookies,
-                        userAgent = userAgent,
-                        isActive = true,
-                        lastUpdated = System.currentTimeMillis()
-                    )
-                    val newId = repository.insertAccount(genericAccount)
-                    repository.setActiveAccount(newId.toInt())
-                } else {
-                    val tempEmail = "chatgpt_user_${System.currentTimeMillis() % 10000}@openai.com"
-                    val genericAccount = Account(
-                        provider = "OpenAI",
-                        email = tempEmail,
-                        userId = "unknown_user",
-                        planType = "unknown",
-                        authToken = authToken,
-                        cookies = cookies,
-                        userAgent = userAgent,
-                        isActive = true,
-                        lastUpdated = System.currentTimeMillis()
-                    )
-                    val newId = repository.insertAccount(genericAccount)
-                    repository.setActiveAccount(newId.toInt())
-                }
-                
-                _errorMessage.value = "Se guardó la sesión, pero falló la sincronización inicial: ${e.localizedMessage}"
+                saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
+                _errorMessage.value = "Se guardo la sesion, pero falla la sincronizacion inicial: ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * Fallback when the initial sync fails but the credentials should still be
+     * saved so the user doesn't lose them. Uses upsert so a re-auth updates the
+     * existing row instead of inserting a duplicate.
+     */
+    private suspend fun saveExpiredFallback(
+        provider: String,
+        authToken: String,
+        cookies: String,
+        userAgent: String,
+        userId: String,
+    ) {
+        val fallbackEmail = when (provider) {
+            "Ollama" -> userId.ifEmpty { "ollama_user_${System.currentTimeMillis() % 10000}" }
+            "Anthropic" -> "Claude Account"
+            else -> "chatgpt_user_${System.currentTimeMillis() % 10000}@openai.com"
+        }
+        val fallbackUserId = when (provider) {
+            "Ollama" -> userId.ifEmpty { "ollama_user_${System.currentTimeMillis() % 10000}" }
+            "Anthropic" -> userId.ifEmpty { "unknown_claude_org" }
+            else -> userId.ifEmpty { "unknown_user" }
+        }
+        val fallbackPlan = when (provider) {
+            "Anthropic" -> "Pro"
+            "Ollama" -> "Free"
+            else -> "unknown"
+        }
+        val newId = repository.upsertAccount(
+            provider = provider,
+            userId = fallbackUserId,
+            email = fallbackEmail,
+            authToken = authToken,
+            cookies = cookies,
+            userAgent = userAgent,
+            planType = fallbackPlan,
+        )
+        repository.setActiveAccount(newId.toInt())
+        clearPendingReAuth(newId.toInt())
+    }
+
+    /**
+     * Clears the pending re-auth slot and removes the account id from the
+     * expired set after a successful upsert.
+     */
+    private fun clearPendingReAuth(accountId: Int) {
+        if (pendingReAuthAccountId == accountId) {
+            pendingReAuthAccountId = null
+        }
+        _expiredAccounts.value = _expiredAccounts.value - accountId
     }
 
     fun handleManualAccountAdd(provider: String, email: String, authToken: String, cookies: String, userAgent: String, userId: String) {
@@ -383,108 +461,113 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 if (provider == "Ollama") {
-                    val response = ollamaService.fetchUsage(
-                        cookies = cookies,
-                        userAgent = userAgent
-                    )
-
-                    val account = Account(
-                        provider = "Ollama",
-                        email = email.ifEmpty { response.email },
-                        userId = response.email,
-                        planType = response.planType,
-                        authToken = "",
+                    val result = ollamaService.fetchUsage(
                         cookies = cookies,
                         userAgent = userAgent,
-                        isActive = true,
-                        lastUpdated = System.currentTimeMillis()
+                        email = userId
                     )
-
-                    val newId = repository.insertAccount(account)
-                    repository.setActiveAccount(newId.toInt())
-                    
-                    val logEntry = mapOllamaResponseToLog(newId.toInt(), response)
-                    repository.insertLog(logEntry)
+                    when (result) {
+                        is SyncResult.Success -> {
+                            val response = result.data
+                            val newId = repository.upsertAccount(
+                                provider = "Ollama",
+                                userId = response.email,
+                                email = email.ifEmpty { response.email },
+                                authToken = "",
+                                cookies = cookies,
+                                userAgent = userAgent,
+                                planType = response.planType,
+                            )
+                            repository.setActiveAccount(newId.toInt())
+                            val logEntry = mapOllamaResponseToLog(newId.toInt(), response)
+                            repository.insertLog(logEntry)
+                        }
+                        else -> {
+                            throw IOException("No se pudo validar la cuenta de Ollama")
+                        }
+                    }
                 } else if (provider == "Anthropic") {
-                    // Try to validate by fetching Anthropic usage
-                    val response = anthropicService.fetchUsage(
+                    val result = anthropicService.fetchUsage(
                         orgId = userId,
                         authToken = authToken,
                         cookies = cookies,
                         userAgent = userAgent
                     )
-
-                    val account = Account(
-                        provider = "Anthropic",
-                        email = email.ifEmpty { "Claude Account" },
-                        userId = userId,
-                        planType = "Pro",
-                        authToken = authToken,
-                        cookies = cookies,
-                        userAgent = userAgent,
-                        isActive = true,
-                        lastUpdated = System.currentTimeMillis()
-                    )
-
-                    val newId = repository.insertAccount(account)
-                    repository.setActiveAccount(newId.toInt())
-                    
-                    // Add initial log
-                    val logEntry = mapAnthropicResponseToLog(newId.toInt(), response)
-                    repository.insertLog(logEntry)
+                    when (result) {
+                        is SyncResult.Success -> {
+                            val response = result.data
+                            val newId = repository.upsertAccount(
+                                provider = "Anthropic",
+                                userId = userId,
+                                email = email.ifEmpty { "Claude Account" },
+                                authToken = authToken,
+                                cookies = cookies,
+                                userAgent = userAgent,
+                                planType = "Pro",
+                            )
+                            repository.setActiveAccount(newId.toInt())
+                            val logEntry = mapAnthropicResponseToLog(newId.toInt(), response)
+                            repository.insertLog(logEntry)
+                        }
+                        else -> {
+                            throw IOException("No se pudo validar la cuenta de Anthropic")
+                        }
+                    }
                 } else {
                     // OpenAI
-                    val response = service.fetchUsage(
-                        authToken = authToken,
-                        cookies = cookies,
-                        userAgent = userAgent
-                    )
-
-                    val account = Account(
-                        provider = "OpenAI",
-                        email = response.email,
-                        userId = response.userId,
-                        planType = response.planType,
+                    val result = service.fetchUsage(
                         authToken = authToken,
                         cookies = cookies,
                         userAgent = userAgent,
-                        isActive = true,
-                        lastUpdated = System.currentTimeMillis()
+                        userId = userId
                     )
-
-                    val newId = repository.insertAccount(account)
-                    repository.setActiveAccount(newId.toInt())
-                    
-                    val logEntry = mapResponseToLog(newId.toInt(), response)
-                    repository.insertLog(logEntry)
+                    when (result) {
+                        is SyncResult.Success -> {
+                            val response = result.data
+                            val newId = repository.upsertAccount(
+                                provider = "OpenAI",
+                                userId = response.userId,
+                                email = response.email,
+                                authToken = authToken,
+                                cookies = cookies,
+                                userAgent = userAgent,
+                                planType = response.planType,
+                            )
+                            repository.setActiveAccount(newId.toInt())
+                            val logEntry = mapResponseToLog(newId.toInt(), response)
+                            repository.insertLog(logEntry)
+                        }
+                        else -> {
+                            throw IOException("No se pudo validar la cuenta de OpenAI")
+                        }
+                    }
                 }
 
                 _errorMessage.value = null
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error validating manual account", e)
-                
+
                 // Still allow saving it, in case they made a typo but want to try again or if they are offline
-                val account = Account(
+                val fallbackEmail = email.ifEmpty {
+                    when (provider) {
+                        "Anthropic" -> "Claude Account"
+                        "Ollama" -> "Ollama Account"
+                        else -> "ChatGPT Account"
+                    }
+                }
+                val fallbackUserId = userId.ifEmpty { "manual_${System.currentTimeMillis()}" }
+                val newId = repository.upsertAccount(
                     provider = provider,
-                    email = email.ifEmpty { 
-                        when (provider) {
-                            "Anthropic" -> "Claude Account"
-                            "Ollama" -> "Ollama Account"
-                            else -> "ChatGPT Account"
-                        }
-                    },
-                    userId = userId.ifEmpty { "manual_${System.currentTimeMillis()}" },
-                    planType = "N/A",
+                    userId = fallbackUserId,
+                    email = fallbackEmail,
                     authToken = authToken,
                     cookies = cookies,
                     userAgent = userAgent,
-                    isActive = true,
-                    lastUpdated = System.currentTimeMillis()
+                    planType = "N/A",
                 )
-                val newId = repository.insertAccount(account)
                 repository.setActiveAccount(newId.toInt())
-                
-                _errorMessage.value = "Guardado con advertencias (La validación falló): ${e.localizedMessage}"
+
+                _errorMessage.value = "Guardado con advertencias (La validacion falla): ${e.localizedMessage}"
             } finally {
                 _isLoading.value = false
             }

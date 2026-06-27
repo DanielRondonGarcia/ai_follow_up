@@ -13,6 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.data.Account
@@ -43,7 +48,9 @@ import com.example.ui.theme.DesignTokens
  * @param logs usage logs for the active account.
  * @param isLoading global loading flag.
  * @param errorMessage nullable error message; shown via [ErrorBanner].
+ * @param isExpired true when the active account is in the expired set.
  * @param onSync callback to sync the active account.
+ * @param onReauth callback to re-authenticate the expired account.
  * @param onDeleteLogs callback to clear the usage history.
  * @param onClearError callback to dismiss the error banner.
  * @param onShowProfileSelector callback to open the profile selector.
@@ -55,13 +62,18 @@ fun AccountDetailScreen(
   logs: List<UsageLog>,
   isLoading: Boolean,
   errorMessage: String?,
+  isExpired: Boolean,
   onSync: () -> Unit,
+  onReauth: () -> Unit,
   onDeleteLogs: () -> Unit,
   onClearError: () -> Unit,
   onShowProfileSelector: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val activeLog = logs.firstOrNull()
+  val expiredLabel = stringResource(R.string.sesion_expirada)
+  val expiredDetail = stringResource(R.string.sesion_expirada_detalle)
+  val reauthLabel = stringResource(R.string.volver_a_autenticar)
 
   Column(
     modifier = modifier
@@ -76,6 +88,15 @@ fun AccountDetailScreen(
       ErrorBanner(
         message = errorMessage,
         onDismiss = onClearError,
+      )
+    }
+
+    if (isExpired) {
+      ExpiredBanner(
+        title = expiredLabel,
+        description = expiredDetail,
+        ctaLabel = reauthLabel,
+        onReauth = onReauth,
       )
     }
 
@@ -139,5 +160,52 @@ fun AccountDetailScreen(
     }
 
     Spacer(modifier = Modifier.height(DesignTokens.Spacing.xxl))
+  }
+}
+
+/**
+ * Expired-session banner shown on the account detail screen when the active
+ * account is in the expired set. Distinct from the generic [ErrorBanner]: uses
+ * an error-colored card with a title, description, and a re-auth CTA button.
+ */
+@Composable
+private fun ExpiredBanner(
+  title: String,
+  description: String,
+  ctaLabel: String,
+  onReauth: () -> Unit,
+) {
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    shape = androidx.compose.foundation.shape.RoundedCornerShape(DesignTokens.Radius.lg),
+    colors = CardDefaults.cardColors(
+      containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+    ),
+    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+  ) {
+    Column(
+      modifier = Modifier.padding(DesignTokens.Spacing.lg),
+      verticalArrangement = Arrangement.spacedBy(DesignTokens.Spacing.sm),
+    ) {
+      Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        color = MaterialTheme.colorScheme.error,
+      )
+      Text(
+        text = description,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+      Button(
+        onClick = onReauth,
+        colors = ButtonDefaults.buttonColors(
+          containerColor = MaterialTheme.colorScheme.error,
+          contentColor = MaterialTheme.colorScheme.onError,
+        ),
+      ) {
+        Text(ctaLabel)
+      }
+    }
   }
 }

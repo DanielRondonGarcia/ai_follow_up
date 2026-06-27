@@ -162,4 +162,11 @@
     <string name="inicia_sesion_subtitulo">Inicia sesión normalmente para conectar</string>
     <string name="cd_cerrar">Cerrar</string>
     <string name="cd_recargar">Recargar</string>
+
+    <!-- Session expiry / re-auth -->
+    <string name="sesion_expirada">Sesion expirada</string>
+    <string name="volver_a_autenticar">Volver a autenticar</string>
+    <string name="sesion_expirada_desc">La sesion de esta cuenta ha caducado. Vuelve a autenticarte para seguir monitoreando.</string>
+    <string name="sesion_expirada_detalle">Sesion expirada, vuelve a autenticarte</string>
+    <string name="cd_reauth">Volver a autenticar esta cuenta</string>
 </resources>

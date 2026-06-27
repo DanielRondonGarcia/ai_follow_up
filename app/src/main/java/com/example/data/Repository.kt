@@ -18,6 +18,37 @@ class UsageRepository(private val db: AppDatabase) {
 
     suspend fun updateAccount(account: Account) = accountDao.updateAccount(account)
 
+    /**
+     * Upsert an account by (provider, userId). Builds an Account from the
+     * given fields with lastUpdated=now, then delegates to the DAO upsert
+     * transaction. If a row with the same (provider, userId) exists, it is
+     * updated in place (same id, same UsageLog history); otherwise a new row
+     * is inserted.
+     */
+    suspend fun upsertAccount(
+        provider: String,
+        userId: String,
+        email: String,
+        authToken: String,
+        cookies: String,
+        userAgent: String,
+        planType: String,
+        isActive: Boolean = true,
+    ): Long {
+        val account = Account(
+            provider = provider,
+            email = email,
+            userId = userId,
+            planType = planType,
+            authToken = authToken,
+            cookies = cookies,
+            userAgent = userAgent,
+            isActive = isActive,
+            lastUpdated = System.currentTimeMillis(),
+        )
+        return accountDao.upsertAccount(account)
+    }
+
     suspend fun deleteAccount(account: Account) {
         usageLogDao.deleteLogsForAccount(account.id)
         accountDao.deleteAccount(account)

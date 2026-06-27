@@ -9,26 +9,28 @@ import okhttp3.Request
 import java.io.IOException
 import java.util.UUID
 
-class AnthropicService {
+open class AnthropicService {
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
         
     private val jsonAdapter = moshi.adapter(AnthropicUsageResponse::class.java)
 
-    private val client = OkHttpClient.Builder()
+    protected open val client = OkHttpClient.Builder()
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
 
-    @Throws(Exception::class)
+    protected open fun usageEndpoint(orgId: String): String =
+        "https://claude.ai/api/organizations/${orgId.trim()}/usage"
+
     suspend fun fetchUsage(
         orgId: String,
         authToken: String, // can be the sessionKey, e.g. "sk-ant-..."
         cookies: String, // can be full cookies or empty
         userAgent: String
-    ): AnthropicUsageResponse = withContext(Dispatchers.IO) {
-        
+    ): SyncResult<AnthropicUsageResponse> = withContext(Dispatchers.IO) {
+
         // Prepare cookies
         val finalCookie = when {
             cookies.trim().isNotEmpty() -> {
@@ -44,7 +46,9 @@ class AnthropicService {
             authToken.trim().isNotEmpty() -> {
                 if (authToken.contains("sessionKey=")) authToken.trim() else "sessionKey=${authToken.trim()}"
             }
-            else -> throw IllegalArgumentException("Se requiere sessionKey o cookies para Anthropic")
+            else -> return@withContext SyncResult.NetworkError(
+                IllegalArgumentException("Se requiere sessionKey o cookies para Anthropic")
+            )
         }
 
         val targetUserAgent = if (userAgent.trim().isNotEmpty()) {
@@ -58,7 +62,7 @@ class AnthropicService {
         val deviceId = "684618c5-5be1-4dd4-976a-5d9bb876b224"
 
         val request = Request.Builder()
-            .url("https://claude.ai/api/organizations/${orgId.trim()}/usage")
+            .url(usageEndpoint(orgId))
             .header("accept", "*/*")
             .header("accept-language", "es-US,es-419;q=0.9,es;q=0.8")
             .header("anthropic-anonymous-id", anonymousId)
@@ -80,12 +84,32 @@ class AnthropicService {
             .header("x-activity-session-id", activitySessionId)
             .build()
 
-        client.newCall(request).execute().use { response ->
-            val bodyString = response.body?.string() ?: throw IOException("Cuerpo de respuesta vacío")
-            if (!response.isSuccessful) {
-                throw IOException("Código de error HTTP: ${response.code}. Servidor respondió: $bodyString")
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.code == 401 || response.code == 403) {
+                    return@withContext SyncResult.AuthExpired("Anthropic", orgId)
+                }
+                if (!response.isSuccessful) {
+                    return@withContext SyncResult.NetworkError(
+                        IOException("Codigo de error HTTP: ${response.code}")
+                    )
+                }
+                val bodyString = response.body?.string()
+                    ?: return@withContext SyncResult.ParseError(
+                        IOException("Cuerpo de respuesta vacio")
+                    )
+                val parsed = jsonAdapter.fromJson(bodyString)
+                if (parsed == null) {
+                    return@withContext SyncResult.ParseError(
+                        IOException("Error al analizar el JSON de respuesta")
+                    )
+                }
+                return@withContext SyncResult.Success(parsed)
             }
-            return@withContext jsonAdapter.fromJson(bodyString) ?: throw IOException("Error al analizar el JSON de respuesta")
+        } catch (e: IOException) {
+            return@withContext SyncResult.NetworkError(e)
+        } catch (e: Exception) {
+            return@withContext SyncResult.ParseError(e)
         }
     }
 }

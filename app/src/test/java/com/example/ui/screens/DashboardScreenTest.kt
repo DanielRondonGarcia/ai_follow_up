@@ -52,7 +52,9 @@ class DashboardScreenTest {
             allLogs = logs,
             isLoading = false,
             errorMessage = null,
+            expiredAccounts = emptySet(),
             onAccountClick = {},
+            onReauth = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -89,7 +91,9 @@ class DashboardScreenTest {
             allLogs = emptyList(),
             isLoading = false,
             errorMessage = "Error de conexion",
+            expiredAccounts = emptySet(),
             onAccountClick = {},
+            onReauth = {},
             onSyncAll = {},
             onClearError = {},
           )
@@ -110,7 +114,9 @@ class DashboardScreenTest {
             allLogs = emptyList(),
             isLoading = false,
             errorMessage = null,
+            expiredAccounts = emptySet(),
             onAccountClick = {},
+            onReauth = {},
             onSyncAll = {},
             onClearError = {},
           )

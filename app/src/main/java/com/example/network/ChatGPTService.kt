@@ -8,30 +8,32 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 
-class ChatGPTService {
+open class ChatGPTService {
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
         
     private val jsonAdapter = moshi.adapter(UsageResponse::class.java)
 
-    private val client = OkHttpClient.Builder()
+    protected open val client = OkHttpClient.Builder()
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
 
-    @Throws(Exception::class)
+    protected open fun usageEndpoint(): String = "https://chatgpt.com/backend-api/wham/usage"
+
     suspend fun fetchUsage(
         authToken: String,
         cookies: String,
-        userAgent: String
-    ): UsageResponse = withContext(Dispatchers.IO) {
+        userAgent: String,
+        userId: String
+    ): SyncResult<UsageResponse> = withContext(Dispatchers.IO) {
         val bearerToken = if (authToken.trim().startsWith("Bearer ")) {
             authToken.trim()
         } else {
             "Bearer ${authToken.trim()}"
         }
-        
+
         val targetUserAgent = if (userAgent.trim().isNotEmpty()) {
             userAgent.trim()
         } else {
@@ -39,7 +41,7 @@ class ChatGPTService {
         }
 
         val request = Request.Builder()
-            .url("https://chatgpt.com/backend-api/wham/usage")
+            .url(usageEndpoint())
             .header("accept", "*/*")
             .header("accept-language", "es-US,es-419;q=0.9,es;q=0.8")
             .header("authorization", bearerToken)
@@ -60,12 +62,34 @@ class ChatGPTService {
             .header("x-openai-target-route", "/backend-api/wham/usage")
             .build()
 
-        client.newCall(request).execute().use { response ->
-            val bodyString = response.body?.string() ?: throw IOException("Cuerpo de respuesta vacío")
-            if (!response.isSuccessful) {
-                throw IOException("Código de error HTTP: ${response.code}. Servidor respondió: $bodyString")
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.code == 401 || response.code == 403) {
+                    return@withContext SyncResult.AuthExpired("OpenAI", userId)
+                }
+                if (!response.isSuccessful) {
+                    return@withContext SyncResult.NetworkError(
+                        IOException("Codigo de error HTTP: ${response.code}")
+                    )
+                }
+                val bodyString = response.body?.string()
+                    ?: return@withContext SyncResult.ParseError(
+                        IOException("Cuerpo de respuesta vacio")
+                    )
+                val parsed = try {
+                    jsonAdapter.fromJson(bodyString)
+                } catch (e: Exception) {
+                    return@withContext SyncResult.ParseError(e)
+                }
+                if (parsed == null) {
+                    return@withContext SyncResult.ParseError(
+                        IOException("Error al analizar el JSON de respuesta")
+                    )
+                }
+                return@withContext SyncResult.Success(parsed)
             }
-            return@withContext jsonAdapter.fromJson(bodyString) ?: throw IOException("Error al analizar el JSON de respuesta")
+        } catch (e: IOException) {
+            return@withContext SyncResult.NetworkError(e)
         }
     }
 }

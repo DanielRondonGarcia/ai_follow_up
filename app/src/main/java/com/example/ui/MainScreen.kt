@@ -48,6 +48,7 @@ fun MainScreen(
   val logs by viewModel.usageLogs.collectAsStateWithLifecycle()
   val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
   val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+  val expiredAccounts by viewModel.expiredAccounts.collectAsStateWithLifecycle()
 
   val showLoginWebView by viewModel.showLoginWebView.collectAsStateWithLifecycle()
   val loginProvider by viewModel.loginProvider.collectAsStateWithLifecycle()
@@ -114,20 +115,32 @@ fun MainScreen(
             allLogs = allLogs,
             isLoading = isLoading,
             errorMessage = errorMessage,
+            expiredAccounts = expiredAccounts,
             onAccountClick = { id -> viewModel.switchAccount(id); navRoute = NavRoute.AccountDetail(id) },
+            onReauth = { id ->
+              val account = accounts.firstOrNull { it.id == id }
+              if (account != null) viewModel.startReAuth(id, account.provider)
+            },
             onSyncAll = { onComplete -> viewModel.syncAllAccounts(onComplete) },
             onClearError = { viewModel.clearError() },
           )
-          is NavRoute.AccountDetail -> AccountDetailScreen(
+          is NavRoute.AccountDetail -> {
+            val active = activeAccount
+            AccountDetailScreen(
             activeAccount = activeAccount,
             logs = logs,
             isLoading = isLoading,
             errorMessage = errorMessage,
+            isExpired = active != null && active.id in expiredAccounts,
             onSync = { viewModel.syncActiveAccount() },
+            onReauth = {
+              active?.let { viewModel.startReAuth(it.id, it.provider) }
+            },
             onDeleteLogs = { showClearHistoryConfirm = true },
             onClearError = { viewModel.clearError() },
             onShowProfileSelector = { showProfileSelector = true },
           )
+        }
         }
       }
     }
