@@ -71,14 +71,20 @@ class NavRouteTest {
 
   @Test
   fun backFromAccountDetail_returnsToDashboard() {
-    // Back button sets navRoute = NavRoute.Dashboard
-    val route = routeForAccounts(twoAccounts, NavRoute.AccountDetail(1))
-    // When accounts still contain id 1, route stays AccountDetail.
-    // Back button explicitly sets Dashboard — routeForAccounts keeps it.
-    assertEquals(NavRoute.AccountDetail(1), route)
-
-    val afterBack = routeForAccounts(twoAccounts, NavRoute.Dashboard)
+    val afterBack = routeAfterSystemBack(NavRoute.AccountDetail(1))
     assertEquals(NavRoute.Dashboard, afterBack)
+  }
+
+  @Test
+  fun systemBackOnDashboard_keepsDashboard() {
+    val afterBack = routeAfterSystemBack(NavRoute.Dashboard)
+    assertEquals(NavRoute.Dashboard, afterBack)
+  }
+
+  @Test
+  fun systemBackOnOnboarding_keepsOnboarding() {
+    val afterBack = routeAfterSystemBack(NavRoute.Onboarding)
+    assertEquals(NavRoute.Onboarding, afterBack)
   }
 
   @Test

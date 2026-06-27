@@ -13,8 +13,8 @@ android {
     applicationId = "com.aistudio.aiagentmonitor.uwpqxt"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    versionCode = providers.environmentVariable("VERSION_CODE").map(String::toInt).getOrElse(1)
+    versionName = providers.environmentVariable("VERSION_NAME").getOrElse("1.0")
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

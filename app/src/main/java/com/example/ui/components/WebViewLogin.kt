@@ -297,9 +297,11 @@ fun WebViewLogin(
                 }
             )
 
-            // Destroy the WebView when the composable leaves composition to prevent
-            // cookie leaks and memory leaks.
-            DisposableEffect(webViewInstance) {
+            // Destroy the WebView only when the composable leaves composition.
+            // Keying this effect by webViewInstance can dispose the previous effect
+            // immediately after the factory assigns the newly created WebView, which
+            // destroys the active WebView before the login page finishes loading.
+            DisposableEffect(Unit) {
                 onDispose {
                     webViewInstance?.destroy()
                 }

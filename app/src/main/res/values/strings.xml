@@ -87,7 +87,6 @@
     <string name="cd_configuracion_manual">Abrir configuración manual</string>
 
     <!-- Dashboard screen -->
-    <string name="panel_de_control_subtitulo">Desliza hacia abajo para actualizar el estado de todos tus agentes en tiempo real.</string>
     <string name="agentes_conectados_count">%1$d Agentes Conectados</string>
     <string name="gestionar_cuentas">Gestionar Cuentas</string>
     <string name="agregar_cuenta">Agregar Cuenta</string>

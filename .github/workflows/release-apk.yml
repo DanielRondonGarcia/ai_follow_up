@@ -1,0 +1,117 @@
+name: Build Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and attach to, for example v1.2.3
+        required: true
+        type: string
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build-apk:
+    name: Build and attach APK
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      HAS_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD != '' }}
+      HAS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD != '' }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Resolve release version
+        id: release_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+          version="${tag#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must look like vMAJOR.MINOR.PATCH, got: $tag" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version_code=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Decode release keystore
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release-keystore.jks"
+
+      - name: Build signed release APK
+        if: ${{ env.HAS_KEYSTORE == 'true' && env.HAS_STORE_PASSWORD == 'true' && env.HAS_KEY_PASSWORD == 'true' }}
+        env:
+          VERSION_NAME: ${{ steps.release_version.outputs.version }}
+          VERSION_CODE: ${{ steps.release_version.outputs.version_code }}
+          KEYSTORE_PATH: ${{ runner.temp }}/release-keystore.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --console=plain
+
+      - name: Build debug APK fallback
+        if: ${{ env.HAS_KEYSTORE != 'true' || env.HAS_STORE_PASSWORD != 'true' || env.HAS_KEY_PASSWORD != 'true' }}
+        env:
+          VERSION_NAME: ${{ steps.release_version.outputs.version }}
+          VERSION_CODE: ${{ steps.release_version.outputs.version_code }}
+        run: ./gradlew :app:assembleDebug --console=plain
+
+      - name: Select APK asset
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+
+          if [[ -f app/build/outputs/apk/release/app-release.apk ]]; then
+            source_apk="app/build/outputs/apk/release/app-release.apk"
+            variant="release"
+          elif [[ -f app/build/outputs/apk/debug/app-debug.apk ]]; then
+            source_apk="app/build/outputs/apk/debug/app-debug.apk"
+            variant="debug"
+          else
+            echo "No APK output found" >&2
+            exit 1
+          fi
+
+          asset_name="AI-Agent-Monitor-${tag}-${variant}.apk"
+          cp "$source_apk" "$asset_name"
+
+          echo "path=$asset_name" >> "$GITHUB_OUTPUT"
+          echo "name=$asset_name" >> "$GITHUB_OUTPUT"
+          echo "variant=$variant" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+      - name: Attach APK to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$RELEASE_TAG" "${{ steps.apk.outputs.path }}#${{ steps.apk.outputs.name }}" --clobber

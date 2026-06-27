@@ -1,5 +1,6 @@
 package com.example.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.ui.navigation.NavRoute
 import com.example.ui.navigation.initialRoute
+import com.example.ui.navigation.routeAfterSystemBack
 import com.example.ui.navigation.routeForAccounts
 import com.example.ui.screens.AccountDetailScreen
 import com.example.ui.screens.DashboardScreen
@@ -59,6 +61,10 @@ fun MainScreen(
   var navRoute by remember { mutableStateOf<NavRoute>(initialRoute(accounts)) }
 
   LaunchedEffect(accounts) { navRoute = routeForAccounts(accounts, navRoute) }
+
+  BackHandler(enabled = navRoute is NavRoute.AccountDetail) {
+    navRoute = routeAfterSystemBack(navRoute)
+  }
 
   val agentsLabel = stringResource(R.string.agentes_conectados_count, accounts.size)
   val backCd = stringResource(R.string.cd_volver_listado)

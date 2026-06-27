@@ -55,3 +55,14 @@ fun routeForAccounts(
     NavRoute.Dashboard
   else -> current
 }
+
+/**
+ * Returns the route after the system Back action.
+ *
+ * The app owns navigation with [NavRoute] instead of a Navigation Component
+ * back stack, so Android Back needs to be mapped explicitly for detail routes.
+ */
+fun routeAfterSystemBack(current: NavRoute): NavRoute = when (current) {
+  is NavRoute.AccountDetail -> NavRoute.Dashboard
+  else -> current
+}

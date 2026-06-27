@@ -3,7 +3,6 @@ package com.example.ui.screens
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.assertIsDisplayed
 import com.example.data.Account
 import com.example.ui.theme.MyApplicationTheme
 import org.junit.Rule
@@ -16,7 +15,8 @@ import org.robolectric.annotation.Config
  * Integration test for screen composition (Task 3.7).
  *
  * Verifies that when DashboardScreen is composed with a fake accounts list,
- * the dashboard content (welcome card, section header, agent email) appears.
+ * the dashboard content (section header, agent email) appears without the
+ * removed welcome/control card.
  * Uses createComposeRule with the app theme and Robolectric for resource
  * resolution.
  */
@@ -63,6 +63,8 @@ class DashboardScreenTest {
 
     // The section header "Tus agentes conectados" should appear.
     composeTestRule.onNodeWithText("Tus agentes conectados").assertExists()
+    // The old control panel card should not take vertical space anymore.
+    composeTestRule.onNodeWithText("Panel de control").assertDoesNotExist()
     // The agent email should appear in the AgentOverviewCard.
     composeTestRule.onNodeWithText("agent@example.com").assertExists()
   }
