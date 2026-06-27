@@ -2,6 +2,8 @@
 
 Monitor your usage and rate limits across multiple AI providers — ChatGPT, Anthropic Claude, and Ollama — from a single Android app.
 
+![AI Agent Monitor Android app preview](docs/preview.jpeg)
+
 Track session windows (3h) and weekly windows (7d) usage, credits, plan type, and reset times for each connected account. Get a clear "session expired" state when credentials need re-authentication, instead of silent failures.
 
 ## Features
