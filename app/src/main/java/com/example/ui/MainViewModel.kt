@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.Account
 import com.example.data.AppDatabase
+import com.example.data.DeviceIdStore
 import com.example.data.UsageLog
 import com.example.data.UsageRepository
 import com.example.network.ChatGPTService
@@ -23,8 +24,13 @@ import java.io.IOException
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     private val repository = UsageRepository(database)
-    private val service = ChatGPTService()
-    private val anthropicService = AnthropicService()
+    private val service = ChatGPTService(
+        oaiDeviceId = DeviceIdStore.getOpenAiDeviceId(application)
+    )
+    private val anthropicService = AnthropicService(
+        anonymousId = DeviceIdStore.getAnthropicAnonymousId(application),
+        deviceId = DeviceIdStore.getAnthropicDeviceId(application)
+    )
     private val ollamaService = OllamaService()
 
     // UI state flows
@@ -78,12 +84,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val expiredAccounts: StateFlow<Set<Int>> = _expiredAccounts.asStateFlow()
 
     private var pendingReAuthAccountId: Int? = null
+    private val syncedAccountIds = mutableSetOf<Int>()
 
     // Automatically sync on startup if an active account is present
     init {
         viewModelScope.launch {
             activeAccount.collectLatest { account ->
-                if (account != null && _errorMessage.value == null && usageLogs.value.isEmpty()) {
+                if (account != null && account.id !in syncedAccountIds) {
+                    syncedAccountIds.add(account.id)
                     syncActiveAccount()
                 }
             }
@@ -297,6 +305,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 userAgent = userAgent,
                                 planType = response.planType,
                             )
+                            syncedAccountIds.add(newId.toInt())
                             repository.setActiveAccount(newId.toInt())
                             val logEntry = mapOllamaResponseToLog(newId.toInt(), response)
                             repository.insertLog(logEntry)
@@ -333,6 +342,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 userAgent = userAgent,
                                 planType = "Pro",
                             )
+                            syncedAccountIds.add(newId.toInt())
                             repository.setActiveAccount(newId.toInt())
                             val logEntry = mapAnthropicResponseToLog(newId.toInt(), response)
                             repository.insertLog(logEntry)
@@ -370,6 +380,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 userAgent = userAgent,
                                 planType = response.planType,
                             )
+                            syncedAccountIds.add(newId.toInt())
                             repository.setActiveAccount(newId.toInt())
                             val logEntry = mapResponseToLog(newId.toInt(), response)
                             repository.insertLog(logEntry)
@@ -388,8 +399,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 }
-
-                _errorMessage.value = null
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error during web login handling", e)
                 saveExpiredFallback(provider, authToken, cookies, userAgent, userId)
@@ -436,6 +445,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             userAgent = userAgent,
             planType = fallbackPlan,
         )
+        syncedAccountIds.add(newId.toInt())
         repository.setActiveAccount(newId.toInt())
         clearPendingReAuth(newId.toInt())
     }
@@ -476,6 +486,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 userAgent = userAgent,
                                 planType = response.planType,
                             )
+                            syncedAccountIds.add(newId.toInt())
                             repository.setActiveAccount(newId.toInt())
                             val logEntry = mapOllamaResponseToLog(newId.toInt(), response)
                             repository.insertLog(logEntry)
@@ -503,6 +514,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 userAgent = userAgent,
                                 planType = "Pro",
                             )
+                            syncedAccountIds.add(newId.toInt())
                             repository.setActiveAccount(newId.toInt())
                             val logEntry = mapAnthropicResponseToLog(newId.toInt(), response)
                             repository.insertLog(logEntry)
@@ -531,6 +543,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 userAgent = userAgent,
                                 planType = response.planType,
                             )
+                            syncedAccountIds.add(newId.toInt())
                             repository.setActiveAccount(newId.toInt())
                             val logEntry = mapResponseToLog(newId.toInt(), response)
                             repository.insertLog(logEntry)
@@ -563,6 +576,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     userAgent = userAgent,
                     planType = "N/A",
                 )
+                syncedAccountIds.add(newId.toInt())
                 repository.setActiveAccount(newId.toInt())
 
                 _errorMessage.value = "Guardado con advertencias (La validacion falla): ${e.localizedMessage}"

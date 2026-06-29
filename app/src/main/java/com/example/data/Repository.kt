@@ -1,5 +1,6 @@
 package com.example.data
 
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 
 class UsageRepository(private val db: AppDatabase) {
@@ -50,8 +51,10 @@ class UsageRepository(private val db: AppDatabase) {
     }
 
     suspend fun deleteAccount(account: Account) {
-        usageLogDao.deleteLogsForAccount(account.id)
-        accountDao.deleteAccount(account)
+        db.withTransaction {
+            usageLogDao.deleteLogsForAccount(account.id)
+            accountDao.deleteAccount(account)
+        }
     }
 
     suspend fun setActiveAccount(accountId: Int) = accountDao.setActiveAccount(accountId)

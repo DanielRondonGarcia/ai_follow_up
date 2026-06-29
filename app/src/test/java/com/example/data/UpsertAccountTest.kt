@@ -62,7 +62,6 @@ class UpsertAccountTest {
       planType = "Free",
     )
     assertNotEquals(0L, id)
-    val all = dao.getAllAccounts()
     // Flow first emission; collect synchronously via list
     val accounts = dao.getAllAccounts().first()
     assertEquals(1, accounts.size)

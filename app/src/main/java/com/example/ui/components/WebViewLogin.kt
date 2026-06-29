@@ -30,6 +30,7 @@ fun WebViewLogin(
     onTokenCaptured: (provider: String, token: String, cookies: String, userAgent: String, userId: String) -> Unit
 ) {
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    val tokenCaptured = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
     var isLoadingPage by remember { mutableStateOf(true) }
     var isFreshLogin by remember { mutableStateOf(true) }
     var currentUrl by remember {
@@ -113,7 +114,9 @@ fun WebViewLogin(
                                 post {
                                     val cookies = CookieManager.getInstance().getCookie("https://chatgpt.com") ?: ""
                                     if (token.trim().isNotEmpty() && cookies.trim().isNotEmpty()) {
-                                        onTokenCaptured("OpenAI", token, cookies, userAgent, "")
+                                        if (tokenCaptured.compareAndSet(false, true)) {
+                                            onTokenCaptured("OpenAI", token, cookies, userAgent, "")
+                                        }
                                     }
                                 }
                             }
@@ -125,9 +128,11 @@ fun WebViewLogin(
                                     val sessionKeyRegex = "sessionKey=([^;\\s]+)".toRegex()
                                     val match = sessionKeyRegex.find(cookies)
                                     val sessionKey = match?.groupValues?.get(1) ?: ""
-                                    
+
                                     if (sessionKey.isNotEmpty() && orgId.isNotEmpty()) {
-                                        onTokenCaptured("Anthropic", sessionKey, cookies, settings.userAgentString ?: "", orgId)
+                                        if (tokenCaptured.compareAndSet(false, true)) {
+                                            onTokenCaptured("Anthropic", sessionKey, cookies, settings.userAgentString ?: "", orgId)
+                                        }
                                     }
                                 }
                             }
@@ -237,7 +242,9 @@ fun WebViewLogin(
                                     val cookies = CookieManager.getInstance().getCookie("https://ollama.com") ?: ""
                                     if (cookies.contains("session=") && url?.contains("/settings") == true) {
                                         post {
-                                            onTokenCaptured("Ollama", "", cookies, settings.userAgentString ?: "", "")
+                                            if (tokenCaptured.compareAndSet(false, true)) {
+                                                onTokenCaptured("Ollama", "", cookies, settings.userAgentString ?: "", "")
+                                            }
                                         }
                                     }
                                 }
@@ -257,7 +264,9 @@ fun WebViewLogin(
                                                 val match = sessionKeyRegex.find(cookies)
                                                 val sessionKey = match?.groupValues?.get(1) ?: ""
                                                 if (sessionKey.isNotEmpty()) {
-                                                    onTokenCaptured("Anthropic", sessionKey, cookies, view?.settings?.userAgentString ?: "", orgId)
+                                                    if (tokenCaptured.compareAndSet(false, true)) {
+                                                        onTokenCaptured("Anthropic", sessionKey, cookies, view?.settings?.userAgentString ?: "", orgId)
+                                                    }
                                                 }
                                             }
                                         }
@@ -269,7 +278,9 @@ fun WebViewLogin(
                                     if (authHeader != null && authHeader.startsWith("Bearer ")) {
                                         post {
                                             val cookies = CookieManager.getInstance().getCookie("https://chatgpt.com") ?: ""
-                                            onTokenCaptured("OpenAI", authHeader, cookies, view?.settings?.userAgentString ?: "", "")
+                                            if (tokenCaptured.compareAndSet(false, true)) {
+                                                onTokenCaptured("OpenAI", authHeader, cookies, view?.settings?.userAgentString ?: "", "")
+                                            }
                                         }
                                     }
                                 }

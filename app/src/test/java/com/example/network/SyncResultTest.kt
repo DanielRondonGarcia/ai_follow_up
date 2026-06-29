@@ -9,6 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.net.InetSocketAddress
+import java.util.UUID
 
 /**
  * Tests the SyncResult mapping in [ChatGPTService], [AnthropicService], and
@@ -48,7 +49,7 @@ class SyncResultTest {
   @Test
   fun chatgpt_401_returnsAuthExpired() = runTest {
     status = 401; body = "unauthorized"
-    val service = object : ChatGPTService() {
+    val service = object : ChatGPTService(oaiDeviceId = UUID.randomUUID().toString()) {
       override fun usageEndpoint() = baseUrl()
     }
     val result = service.fetchUsage("tok", "", "", "user-123")
@@ -61,7 +62,7 @@ class SyncResultTest {
   @Test
   fun chatgpt_403_returnsAuthExpired() = runTest {
     status = 403; body = "forbidden"
-    val service = object : ChatGPTService() {
+    val service = object : ChatGPTService(oaiDeviceId = UUID.randomUUID().toString()) {
       override fun usageEndpoint() = baseUrl()
     }
     val result = service.fetchUsage("tok", "", "", "user-456")
@@ -71,7 +72,7 @@ class SyncResultTest {
   @Test
   fun chatgpt_500_returnsNetworkError() = runTest {
     status = 500; body = "server error"
-    val service = object : ChatGPTService() {
+    val service = object : ChatGPTService(oaiDeviceId = UUID.randomUUID().toString()) {
       override fun usageEndpoint() = baseUrl()
     }
     val result = service.fetchUsage("tok", "", "", "user-789")
@@ -81,7 +82,7 @@ class SyncResultTest {
   @Test
   fun chatgpt_200_badJson_returnsParseError() = runTest {
     status = 200; body = "not json"
-    val service = object : ChatGPTService() {
+    val service = object : ChatGPTService(oaiDeviceId = UUID.randomUUID().toString()) {
       override fun usageEndpoint() = baseUrl()
     }
     val result = service.fetchUsage("tok", "", "", "user-789")
@@ -91,7 +92,10 @@ class SyncResultTest {
   @Test
   fun anthropic_401_returnsAuthExpiredWithOrgId() = runTest {
     status = 401; body = "unauthorized"
-    val service = object : AnthropicService() {
+    val service = object : AnthropicService(
+      anonymousId = "claudeai.v1.${UUID.randomUUID()}",
+      deviceId = UUID.randomUUID().toString()
+    ) {
       override fun usageEndpoint(orgId: String) = baseUrl()
     }
     val result = service.fetchUsage("org-uuid", "sk-ant-x", "", "")
@@ -104,7 +108,10 @@ class SyncResultTest {
   @Test
   fun anthropic_500_returnsNetworkError() = runTest {
     status = 500; body = "server error"
-    val service = object : AnthropicService() {
+    val service = object : AnthropicService(
+      anonymousId = "claudeai.v1.${UUID.randomUUID()}",
+      deviceId = UUID.randomUUID().toString()
+    ) {
       override fun usageEndpoint(orgId: String) = baseUrl()
     }
     val result = service.fetchUsage("org-uuid", "sk-ant-x", "sessionKey=abc", "")

@@ -1,9 +1,12 @@
 package com.example.ui
 
+import android.content.Context
 import androidx.compose.material3.Surface
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.example.R
 import com.example.data.Account
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.theme.MyApplicationTheme
@@ -28,6 +31,8 @@ class ReAuthFlowTest {
 
   @get:Rule
   val composeTestRule = createComposeRule()
+
+  private val ctx: Context get() = ApplicationProvider.getApplicationContext()
 
   private val expiredAccount = Account(
     id = 7,
@@ -72,8 +77,8 @@ class ReAuthFlowTest {
       }
     }
 
-    composeTestRule.onNodeWithText("Sesion expirada").assertExists()
-    composeTestRule.onNodeWithText("Volver a autenticar").assertExists()
+    composeTestRule.onNodeWithText(ctx.getString(R.string.sesion_expirada)).assertExists()
+    composeTestRule.onNodeWithText(ctx.getString(R.string.volver_a_autenticar)).assertExists()
   }
 
   @Test
@@ -98,8 +103,8 @@ class ReAuthFlowTest {
     }
 
     // The expired label must NOT appear for a healthy account.
-    composeTestRule.onNodeWithText("Sesion expirada").assertDoesNotExist()
-    composeTestRule.onNodeWithText("Volver a autenticar").assertDoesNotExist()
+    composeTestRule.onNodeWithText(ctx.getString(R.string.sesion_expirada)).assertDoesNotExist()
+    composeTestRule.onNodeWithText(ctx.getString(R.string.volver_a_autenticar)).assertDoesNotExist()
   }
 
   @Test
@@ -124,7 +129,7 @@ class ReAuthFlowTest {
       }
     }
 
-    composeTestRule.onNodeWithText("Volver a autenticar").performClick()
+    composeTestRule.onNodeWithText(ctx.getString(R.string.volver_a_autenticar)).performClick()
     org.junit.Assert.assertEquals(7, reauthId)
   }
 
@@ -150,7 +155,7 @@ class ReAuthFlowTest {
     }
 
     // The expired badge appears (for id=7) and the healthy email is visible.
-    composeTestRule.onNodeWithText("Sesion expirada").assertExists()
+    composeTestRule.onNodeWithText(ctx.getString(R.string.sesion_expirada)).assertExists()
     composeTestRule.onNodeWithText("healthy@test.com").assertExists()
   }
 }

@@ -8,7 +8,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 
-open class ChatGPTService {
+open class ChatGPTService(
+    private val oaiDeviceId: String
+) {
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
@@ -48,7 +50,7 @@ open class ChatGPTService {
             .header("cookie", cookies.trim())
             .header("oai-client-build-number", "7748709")
             .header("oai-client-version", "prod-0ec16b465a393744359db32717d5183e41cdd4ee")
-            .header("oai-device-id", "28fafdbd-ece8-4599-8289-762873703360")
+            .header("oai-device-id", oaiDeviceId)
             .header("priority", "u=1, i")
             .header("referer", "https://chatgpt.com/codex/cloud/settings/analytics")
             .header("sec-ch-ua", "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"")
@@ -89,6 +91,19 @@ open class ChatGPTService {
                 return@withContext SyncResult.Success(parsed)
             }
         } catch (e: IOException) {
+            return@withContext SyncResult.NetworkError(e)
+        } catch (e: Exception) {
+            // Intentionally NetworkError (not ParseError): the inner try-catch on
+            // jsonAdapter.fromJson already intercepts all Moshi deserialization
+            // exceptions and maps them to SyncResult.ParseError. Any exception that
+            // escapes to here must therefore be an OkHttp runtime failure (e.g.
+            // ConnectException, SocketTimeoutException subclasses not caught as
+            // IOException by the JVM on some Android versions). Mapping it as
+            // NetworkError gives the caller accurate diagnostics.
+            // Note: AnthropicService has no inner try-catch around its fromJson call,
+            // so its outer catch correctly uses ParseError to cover deserialization
+            // failures. The asymmetry is intentional — do not "align" them by
+            // removing the inner catch here.
             return@withContext SyncResult.NetworkError(e)
         }
     }

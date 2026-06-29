@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Account::class, UsageLog::class], version = 2, exportSchema = false)
+@Database(entities = [Account::class, UsageLog::class], version = 2, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun accountDao(): AccountDao
     abstract fun usageLogDao(): UsageLogDao
@@ -21,7 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ai_agent_monitor_db"
                 )
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration() // TODO: replace with explicit Migration objects before next schema change
                 .build()
                 INSTANCE = instance
                 instance

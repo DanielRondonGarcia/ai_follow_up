@@ -9,7 +9,10 @@ import okhttp3.Request
 import java.io.IOException
 import java.util.UUID
 
-open class AnthropicService {
+open class AnthropicService(
+    private val anonymousId: String,
+    private val deviceId: String
+) {
     private val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
@@ -58,8 +61,6 @@ open class AnthropicService {
         }
 
         val activitySessionId = UUID.randomUUID().toString()
-        val anonymousId = "claudeai.v1.cb50e252-0327-4bba-b452-fa84e9499371"
-        val deviceId = "684618c5-5be1-4dd4-976a-5d9bb876b224"
 
         val request = Request.Builder()
             .url(usageEndpoint(orgId))
