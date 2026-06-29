@@ -62,6 +62,25 @@ internal fun WebViewLoginOverlay(
 }
 
 @Composable
+internal fun MigrationNoticeDialog(
+  onDismiss: () -> Unit,
+) {
+  AlertDialog(
+    onDismissRequest = { /* non-dismissible on outside click */ },
+    title = { Text("Security Upgrade") },
+    text = {
+      Text(
+        "Your accounts were cleared due to a new encryption-at-rest security improvement. " +
+          "Please re-add your accounts."
+      )
+    },
+    confirmButton = {
+      TextButton(onClick = onDismiss) { Text("Got it") }
+    },
+  )
+}
+
+@Composable
 internal fun ClearHistoryConfirmDialog(
   onConfirm: () -> Unit,
   onDismiss: () -> Unit,

@@ -55,6 +55,7 @@ fun MainScreen(
   val showLoginWebView by viewModel.showLoginWebView.collectAsStateWithLifecycle()
   val loginProvider by viewModel.loginProvider.collectAsStateWithLifecycle()
   val showAddManualDialog by viewModel.showAddManualDialog.collectAsStateWithLifecycle()
+  val showMigrationNotice by viewModel.showMigrationNotice.collectAsStateWithLifecycle()
 
   var showProfileSelector by remember { mutableStateOf(false) }
   var showClearHistoryConfirm by remember { mutableStateOf(false) }
@@ -181,6 +182,11 @@ fun MainScreen(
     ClearHistoryConfirmDialog(
       onConfirm = { viewModel.deleteLogs(); showClearHistoryConfirm = false },
       onDismiss = { showClearHistoryConfirm = false },
+    )
+  }
+  if (showMigrationNotice) {
+    MigrationNoticeDialog(
+      onDismiss = { viewModel.dismissMigrationNotice() },
     )
   }
 }

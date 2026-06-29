@@ -27,6 +27,12 @@ import org.robolectric.annotation.Config
  *   re-authing one does not touch the other.
  * - UsageLog rows are preserved when the account is updated via upsert.
  */
+
+class FakeCredentialEncryptor : CredentialEncryptor {
+    override fun encrypt(plaintext: String) = "enc:$plaintext"
+    override fun decrypt(ciphertext: String) = ciphertext.removePrefix("enc:")
+}
+
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
 class UpsertAccountTest {
@@ -42,7 +48,7 @@ class UpsertAccountTest {
       .allowMainThreadQueries()
       .build()
     dao = db.accountDao()
-    repo = UsageRepository(db)
+    repo = UsageRepository(db, FakeCredentialEncryptor())
   }
 
   @After
@@ -66,7 +72,7 @@ class UpsertAccountTest {
     val accounts = dao.getAllAccounts().first()
     assertEquals(1, accounts.size)
     assertEquals("new@test.com", accounts[0].userId)
-    assertEquals("session=abc", accounts[0].cookies)
+    assertEquals("session=abc", FakeCredentialEncryptor().decrypt(accounts[0].cookies))
   }
 
   @Test
@@ -97,7 +103,7 @@ class UpsertAccountTest {
 
     val accounts = dao.getAllAccounts().first()
     assertEquals("must be exactly 1 row, no duplicate", 1, accounts.size)
-    assertEquals("session=new", accounts[0].cookies)
+    assertEquals("session=new", FakeCredentialEncryptor().decrypt(accounts[0].cookies))
     assertEquals("ua-new", accounts[0].userAgent)
     assertEquals("Pro", accounts[0].planType)
   }
@@ -141,10 +147,10 @@ class UpsertAccountTest {
 
     val a = accounts.first { it.userId == "emailA@test.com" }
     val b = accounts.first { it.userId == "emailB@test.com" }
-    assertEquals("session=A-new", a.cookies)
+    assertEquals("session=A-new", FakeCredentialEncryptor().decrypt(a.cookies))
     assertEquals("Pro", a.planType)
     // B must be untouched
-    assertEquals("session=B", b.cookies)
+    assertEquals("session=B", FakeCredentialEncryptor().decrypt(b.cookies))
     assertEquals("ua-B", b.userAgent)
     assertEquals("Free", b.planType)
   }

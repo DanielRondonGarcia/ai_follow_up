@@ -1,29 +1,35 @@
 package com.example.ui
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.Account
 import com.example.data.AppDatabase
+import com.example.data.CredentialDecryptionException
 import com.example.data.DeviceIdStore
+import com.example.data.KeystoreCredentialEncryptor
 import com.example.data.UsageLog
 import com.example.data.UsageRepository
-import com.example.network.ChatGPTService
-import com.example.network.UsageResponse
 import com.example.network.AnthropicService
 import com.example.network.AnthropicUsageResponse
+import com.example.network.ChatGPTService
 import com.example.network.OllamaService
 import com.example.network.OllamaUsageResponse
 import com.example.network.SyncResult
+import com.example.network.UsageResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
-    private val repository = UsageRepository(database)
+    private val encryptor = KeystoreCredentialEncryptor(application)
+    private val repository = UsageRepository(database, encryptor)
     private val service = ChatGPTService(
         oaiDeviceId = DeviceIdStore.getOpenAiDeviceId(application)
     )
@@ -83,6 +89,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _expiredAccounts = MutableStateFlow<Set<Int>>(emptySet())
     val expiredAccounts: StateFlow<Set<Int>> = _expiredAccounts.asStateFlow()
 
+    private val _showMigrationNotice = MutableStateFlow(false)
+    val showMigrationNotice: StateFlow<Boolean> = _showMigrationNotice.asStateFlow()
+
     private var pendingReAuthAccountId: Int? = null
     private val syncedAccountIds = mutableSetOf<Int>()
 
@@ -96,6 +105,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+        viewModelScope.launch(Dispatchers.IO) {
+            val prefs = application.getSharedPreferences("app_flags", Context.MODE_PRIVATE)
+            val shown = prefs.getBoolean("migration_v3_dialog_shown", false)
+            if (!shown) {
+                val accounts = database.accountDao().getAllAccounts().first()
+                val logs = database.usageLogDao().getAllLogsFlow().first()
+                if (accounts.isEmpty() && logs.isNotEmpty()) {
+                    _showMigrationNotice.value = true
+                }
+            }
+        }
+    }
+
+    fun dismissMigrationNotice() {
+        val prefs = getApplication<Application>().getSharedPreferences("app_flags", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("migration_v3_dialog_shown", true).commit()
+        _showMigrationNotice.value = false
     }
 
     fun setShowLoginWebView(show: Boolean) {
@@ -151,12 +177,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * translate them into a user-facing message.
      */
     private suspend fun syncOneAccount(account: Account) {
-        when (account.provider) {
+        val decrypted = try {
+            when (account.provider) {
+                "Ollama" -> account.copy(cookies = encryptor.decrypt(account.cookies))
+                else -> account.copy(
+                    authToken = encryptor.decrypt(account.authToken),
+                    cookies = encryptor.decrypt(account.cookies),
+                )
+            }
+        } catch (e: CredentialDecryptionException) {
+            handleSyncResult(account, SyncResult.AuthExpired(account.provider, account.userId)) { account }
+            return
+        }
+        when (decrypted.provider) {
             "Ollama" -> {
                 val result = ollamaService.fetchUsage(
-                    cookies = account.cookies,
-                    userAgent = account.userAgent,
-                    email = account.userId
+                    cookies = decrypted.cookies,
+                    userAgent = decrypted.userAgent,
+                    email = decrypted.userId
                 )
                 handleSyncResult(account, result) { response ->
                     val logEntry = mapOllamaResponseToLog(account.id, response)
@@ -170,10 +208,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             "Anthropic" -> {
                 val result = anthropicService.fetchUsage(
-                    orgId = account.userId,
-                    authToken = account.authToken,
-                    cookies = account.cookies,
-                    userAgent = account.userAgent
+                    orgId = decrypted.userId,
+                    authToken = decrypted.authToken,
+                    cookies = decrypted.cookies,
+                    userAgent = decrypted.userAgent
                 )
                 handleSyncResult(account, result) { response ->
                     val logEntry = mapAnthropicResponseToLog(account.id, response)
@@ -185,10 +223,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             else -> {
                 val result = service.fetchUsage(
-                    authToken = account.authToken,
-                    cookies = account.cookies,
-                    userAgent = account.userAgent,
-                    userId = account.userId
+                    authToken = decrypted.authToken,
+                    cookies = decrypted.cookies,
+                    userAgent = decrypted.userAgent,
+                    userId = decrypted.userId
                 )
                 handleSyncResult(account, result) { response ->
                     val logEntry = mapResponseToLog(account.id, response)

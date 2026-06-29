@@ -10,7 +10,9 @@ data class Account(
     val email: String,
     val userId: String,
     val planType: String,
+    /** Stored as AES-256-GCM ciphertext. Decrypt before network use. */
     val authToken: String,
+    /** Stored as AES-256-GCM ciphertext. Decrypt before network use. */
     val cookies: String,
     val userAgent: String,
     val isActive: Boolean = false,

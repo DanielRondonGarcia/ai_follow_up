@@ -3,7 +3,7 @@ package com.example.data
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 
-class UsageRepository(private val db: AppDatabase) {
+class UsageRepository(private val db: AppDatabase, private val encryptor: CredentialEncryptor) {
     private val accountDao = db.accountDao()
     private val usageLogDao = db.usageLogDao()
 
@@ -41,8 +41,8 @@ class UsageRepository(private val db: AppDatabase) {
             email = email,
             userId = userId,
             planType = planType,
-            authToken = authToken,
-            cookies = cookies,
+            authToken = encryptor.encrypt(authToken),
+            cookies = encryptor.encrypt(cookies),
             userAgent = userAgent,
             isActive = isActive,
             lastUpdated = System.currentTimeMillis(),
